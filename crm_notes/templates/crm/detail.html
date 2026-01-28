@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM記事詳情</title>
+    <style>
+        body {
+            font-family: "Noto Sans TC", Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            color: #1a1a1a;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .close-button:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            background-color: #fdecea;
+            color: #c0392b;
+            border: 1px solid #f5c6cb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 0.6rem 0.75rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            width: 30%;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="close-button" href="#" onclick="window.close(); return false;">關閉視窗</a>
+        <h1>CRM記事詳情</h1>
+
+        {% if error %}
+        <div class="alert">{{ error }}</div>
+        {% else %}
+        <table>
+            <tbody>
+                {% for column in columns %}
+                <tr>
+                    <th>{{ column }}</th>
+                    <td>{{ record.get(column) or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</body>
+</html>

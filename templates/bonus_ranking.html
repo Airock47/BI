@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>員工獎勵系統 - 排行</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f7f7f9; padding:20px; }
+    .container { max-width: 980px; margin: 0 auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th, td { border-bottom:1px solid #eee; padding:8px; text-align:left; font-size:14px; }
+    th { background:#f0f0f5; cursor:default; }
+    .header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .btn { display:inline-block; padding:8px 14px; border-radius:4px; text-decoration:none; border:none; cursor:pointer; }
+    .btn-primary { background:#673ab7; color:#fff; }
+    .btn-secondary { background:#6c757d; color:#fff; }
+    .score-negative { color:#c62828; }
+    .sortable { cursor:pointer; user-select:none; }
+    .sort-indicator { margin-left:4px; font-size:11px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-row">
+      <h2>🏆 員工獎勵系統－排行</h2>
+      <div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">返回主畫面</a>
+        <a href="{{ url_for('bonus.bonus_apply') }}" class="btn btn-primary" style="margin-left:8px;">新增員工獎勵申請</a>
+        <button id="exportRanking" class="btn btn-primary" type="button" style="margin-left:8px;">匯出 Excel</button>
+      </div>
+    </div>
+
+    <p style="margin-top:8px; color:#666; font-size:13px;">
+      點選「加點／扣點／合計」欄位標題可切換排序方向；下拉選擇部門可過濾資料。
+    </p>
+
+    <div style="margin:6px 0 4px 0;">
+      <label style="font-size:13px;">
+        部門：
+        <select id="deptFilterHeader" style="font-size:13px; padding:2px 4px;">
+          <option value="">全部部門</option>
+        </select>
+      </label>
+    </div>
+
+    <table id="rankingTable">
+      <thead>
+        <tr>
+          <th style="width:60px;">名次</th>
+          <th>員工姓名</th>
+          <th>部門名稱</th>
+          <th style="width:120px;" class="sortable" data-sort-key="positive">
+            加點<span class="sort-indicator"></span>
+          </th>
+          <th style="width:120px;" class="sortable" data-sort-key="negative">
+            扣點<span class="sort-indicator"></span>
+          </th>
+          <th style="width:120px;" class="sortable" data-sort-key="total">
+            合計<span class="sort-indicator"></span>
+          </th>
+          <th style="width:120px;">申請次數</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rankings %}
+          {% for r in rankings %}
+          <tr
+            data-username="{{ r.target_username }}"
+            data-dept="{{ r.department or '' }}"
+            data-positive="{{ r.positive_score or 0 }}"
+            data-negative="{{ r.negative_score or 0 }}"
+            data-total="{{ r.total_score or 0 }}"
+          >
+            <td class="rank-col">{{ loop.index }}</td>
+            <td>{{ r.name or r.target_username }}</td>
+            <td>{{ r.department or '' }}</td>
+            <td>{{ r.positive_score or 0 }}</td>
+            <td>
+              <span class="{{ 'score-negative' if (r.negative_score or 0) < 0 else '' }}">
+                {{ r.negative_score or 0 }}
+              </span>
+            </td>
+            <td>
+              <span class="{{ 'score-negative' if (r.total_score or 0) < 0 else '' }}">
+                {{ r.total_score or 0 }}
+              </span>
+            </td>
+            <td>{{ r.times }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="7" style="color:#888;">目前尚無獎勵申請紀錄。</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const table = document.getElementById('rankingTable');
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr[data-username]'));
+      const deptSelect = document.getElementById('deptFilterHeader');
+      const exportBtn = document.getElementById('exportRanking');
+      const sortableHeaders = Array.from(table.querySelectorAll('th.sortable'));
+
+      let currentSortKey = 'total';
+      let currentOrder = 'desc';
+      let currentDept = '';
+
+      // 建立部門下拉選單
+      const deptSet = new Set();
+      rows.forEach(r => {
+        const dept = (r.dataset.dept || '').trim();
+        if (dept) deptSet.add(dept);
+      });
+      Array.from(deptSet).sort().forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        deptSelect.appendChild(opt);
+      });
+
+      function updateSortIndicators() {
+        sortableHeaders.forEach(th => {
+          const span = th.querySelector('.sort-indicator');
+          if (!span) return;
+          const key = th.dataset.sortKey;
+          if (key === currentSortKey) {
+            span.textContent = currentOrder === 'asc' ? '▲' : '▼';
+          } else {
+            span.textContent = '';
+          }
+        });
+      }
+
+      function applyFilterSort() {
+        const dept = currentDept;
+        const field = currentSortKey || 'total';
+        const order = currentOrder || 'desc';
+
+        // 過濾資料列
+        const filtered = rows.filter(r => {
+          const rDept = (r.dataset.dept || '').trim();
+          return !dept || rDept === dept;
+        });
+
+        // 隱藏所有列
+        rows.forEach(r => { r.style.display = 'none'; });
+
+        // 依指定欄位排序
+        const keyName = field === 'positive' ? 'positive' :
+                        field === 'negative' ? 'negative' : 'total';
+        filtered.sort((a, b) => {
+          const av = parseFloat(a.dataset[keyName] || '0');
+          const bv = parseFloat(b.dataset[keyName] || '0');
+          return order === 'asc' ? av - bv : bv - av;
+        });
+
+        // 重新附加到 tbody，並更新名次
+        filtered.forEach((r, idx) => {
+          tbody.appendChild(r);
+          const rankCell = r.querySelector('.rank-col');
+          if (rankCell) rankCell.textContent = String(idx + 1);
+          r.style.display = '';
+        });
+
+        updateSortIndicators();
+      }
+
+      // 欄位標題點擊排序
+      sortableHeaders.forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.sortKey;
+          if (!key) return;
+          if (currentSortKey === key) {
+            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortKey = key;
+            currentOrder = 'desc';
+          }
+          applyFilterSort();
+        });
+      });
+
+      // 部門下拉過濾
+      deptSelect.addEventListener('change', () => {
+        currentDept = deptSelect.value || '';
+        applyFilterSort();
+      });
+
+      // 匯出目前畫面資料為 CSV（Excel 可開啟）
+      exportBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        const visibleRows = rows.filter(r => r.style.display !== 'none');
+
+        function esc(v) {
+          const s = (v == null ? '' : String(v)).replace(/"/g, '""');
+          return /[",\r\n]/.test(s) ? `"${s}"` : s;
+        }
+
+        const lines = [];
+        const headerLabels = ['名次', '員工姓名', '部門名稱', '加點', '扣點', '合計', '申請次數'];
+        lines.push(headerLabels.map(esc).join(','));
+
+        visibleRows.forEach(r => {
+          const cells = Array.from(r.querySelectorAll('td'));
+          lines.push(cells.map(td => esc(td.textContent.trim())).join(','));
+        });
+
+        const csv = '\ufeff' + lines.join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'bonus_ranking.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      // 預設套用一次排序／篩選
+      applyFilterSort();
+    });
+  </script>
+</body>
+</html>
+

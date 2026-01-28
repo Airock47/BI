@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+.vscode/
+logs/
+shared_storage/
+database/*.db
+*.log
+*.bak
+*- 複製.py
+*- 複製 (2).py
+*-old.py
+帳號密碼.txt
+.gemini/
+.antigravity/
+*.db
+*.xlsx

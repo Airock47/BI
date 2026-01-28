@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>被鎖定帳號管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .account-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .account-item {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .account-info strong {
+            color: #007bff;
+        }
+
+        .unlock-button {
+            background-color: #28a745;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .unlock-button:hover {
+            background-color: #218838;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 1.5rem;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>被鎖定帳號管理</h1>
+        {% if locked_accounts %}
+        <ul class="account-list">
+            {% for account in locked_accounts %}
+            <li class="account-item">
+                <div class="account-info">
+                    <strong>帳號:</strong> {{ account.username }} ({{ account.name }})<br>
+                    <strong>失敗次數:</strong> {{ account.failed_attempts }}<br>
+                    <strong>鎖定至:</strong> {{ account.lock_until }}
+                </div>
+                <a href="{{ url_for('admin_unlock', username=account.username) }}" class="unlock-button">解除鎖定</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>目前沒有被鎖定的帳號。</p>
+        {% endif %}
+        <a href="{{ url_for('dashboard') }}" class="back-link">返回主選單</a>
+    </div>
+</body>
+
+</html>

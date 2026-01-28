@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM記事查詢</title>
+    <style>
+        body {
+            font-family: "Noto Sans TC", Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.75rem;
+            color: #1a1a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        a.back-link {
+            font-size: 0.9rem;
+            color: #0069d9;
+            text-decoration: none;
+        }
+
+        form {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid #ccd1d9;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button[type="submit"] {
+            background-color: #007bff;
+            border: none;
+            color: #fff;
+            padding: 0.65rem 1.25rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .alert-error {
+            background-color: #fdecea;
+            color: #c0392b;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background-color: #eef5ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 0.65rem 0.75rem;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.95rem;
+            word-break: break-word;
+        }
+
+        th {
+            background-color: #f0f4f8;
+            color: #333;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+
+        th:nth-child(3), td:nth-child(3),
+        th:nth-child(4), td:nth-child(4),
+        th:nth-child(5), td:nth-child(5),
+        th:nth-child(6), td:nth-child(6) {
+            min-width: 4em;
+        }
+
+        .actions {
+            min-width: 4em;
+        }
+
+        .actions a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .actions a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            CRM記事查詢
+            <a class="back-link" href="{{ url_for('dashboard') }}">返回主畫面</a>
+        </h1>
+
+        <form method="get" action="{{ url_for('crm.index') }}">
+            <input type="text" name="keyword" placeholder="輸入姓名、電話、地址或記事關鍵字" value="{{ keyword }}">
+            <button type="submit">查詢</button>
+        </form>
+
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        {% if keyword and not error %}
+            {% if results %}
+                <div class="alert alert-info">查詢 "{{ keyword }}" 共找到 {{ results|length }} 筆資料。</div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in display_columns %}
+                                <th>{{ col }}</th>
+                                {% endfor %}
+                                <th class="actions">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                            <tr>
+                                {% for col in display_columns %}
+                                <td>{{ row.data.get(col) or '' }}</td>
+                                {% endfor %}
+                                <td class="actions">
+                                    <a href="{{ url_for('crm.detail', rowid=row.rowid, keyword=keyword) }}" target="_blank" rel="noopener">詳細資料</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">查詢 "{{ keyword }}" 暫無符合的資料。</div>
+            {% endif %}
+        {% elif not keyword %}
+            <div class="alert alert-info">請輸入關鍵字後按下「查詢」。</div>
+        {% endif %}
+    </div>
+</body>
+</html>

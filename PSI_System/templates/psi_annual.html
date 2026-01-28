@@ -1,0 +1,1185 @@
+{% extends "base.html" %}
+
+{% block title %}年度產銷計畫{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-header-bg: #4a5568;
+        --secondary-bg: #f8f9fa;
+        --table-border-color: #e2e8f0;
+        --sticky-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background-color: #f7f9fc;
+        color: #2d3748;
+    }
+
+    /* 1. Header & Controls */
+    .page-header {
+        background: #fff;
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        margin-bottom: 1.5rem;
+    }
+
+    /* 2. Table Container */
+    .table-card {
+        background: #fff;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        /* overflow: hidden; REMOVED to fix Sticky Header */
+        border: 1px solid #edf2f7;
+    }
+
+    .custom-table {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+        /* Crucial for layout stability */
+    }
+
+    .custom-table th,
+    .custom-table td {
+        padding: 12px 8px;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--table-border-color);
+        background-color: #fff;
+        /* Default bg */
+    }
+
+    /* Header Styling - Unified & Lighter */
+    .custom-table thead th {
+        background-color: #4a5568;
+        /* Lighter Slate Blue (Cool Gray 700) */
+        color: #fff;
+        font-weight: 600;
+        white-space: nowrap;
+        border: none;
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+        letter-spacing: 0.02em;
+    }
+
+    /* Remove Section Specific Colors */
+    .th-blue,
+    .th-teal,
+    .th-slate {
+        background-color: #4a5568 !important;
+    }
+
+    /* Sub-headers: Lighter Gray/Blue */
+    .custom-table thead tr:nth-child(2) th {
+        background-color: #718096 !important;
+        /* Cool Gray 600 */
+        font-size: 0.85em;
+        text-transform: uppercase;
+        color: #fff;
+    }
+
+    /* Sticky Sequence Column */
+    .sticky-sequence {
+        position: sticky;
+        left: 0;
+        z-index: 31;
+        background-color: #fff;
+        border-right: 1px solid #e2e8f0;
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+    }
+
+    th.sticky-sequence {
+        background-color: #4a5568 !important;
+        z-index: 41;
+        /* Higher than Product Header */
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Sticky Product Column (Shifted) */
+    .sticky-left {
+        position: sticky;
+        left: 50px;
+        /* Width of Sequence Col */
+        z-index: 30;
+        background-color: #fff;
+        border-right: 1px solid #e2e8f0;
+        box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.05);
+        /* Shadow on the rightmost sticky */
+        width: 220px;
+        min-width: 220px;
+        max-width: 220px;
+    }
+
+    th.sticky-left {
+        background-color: #4a5568 !important;
+        z-index: 40;
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* NESTED SCROLL CONTAINER CSS */
+    .scroll-cell {
+        padding: 0 !important;
+        width: 490px;
+        /* 7 months * 70px */
+        max-width: 490px;
+    }
+
+    .scroll-wrapper {
+        display: flex;
+        overflow-x: auto;
+        width: 100%;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e0 #f7fafc;
+    }
+
+    /* Scroll Item Styling */
+    .scroll-item {
+        flex: 0 0 70px;
+        /* Reduced to 70px */
+        width: 70px;
+        min-width: 70px;
+        text-align: center;
+        padding: 12px 4px;
+        /* Reduced padding */
+        border-right: 1px dashed #edf2f7;
+    }
+
+    .scroll-item:last-child {
+        border-right: none;
+    }
+
+    /* Header specific styles inside scroll wrapper */
+    .header-scroll-item {
+        background-color: #718096;
+        /* Match Sub-header Gray */
+        color: white;
+        font-weight: 600;
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Scrollbar Visibility Control: Header Only */
+    .header-sync::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .header-sync::-webkit-scrollbar-track {
+        background: #ebf8ff;
+    }
+
+    .header-sync::-webkit-scrollbar-thumb {
+        background: #63b3ed;
+        /* Lighter blue thumb */
+        border-radius: 3px;
+    }
+
+    .header-sync::-webkit-scrollbar-thumb:hover {
+        background: #4299e1;
+    }
+
+    .body-sync {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .body-sync::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Sticky Header Logic - Multi-Row Fix */
+    .custom-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid #718096 !important;
+    }
+
+    /* Row 1: Stick to top */
+    .custom-table thead tr:nth-child(1) th {
+        top: 0;
+        height: 50px;
+        /* Explicit height for calculation */
+    }
+
+    /* Row 2: Stick below Row 1 */
+    .custom-table thead tr:nth-child(2) th {
+        top: 50px;
+        /* Matches Row 1 height */
+        z-index: 20;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        /* Shadow for bottom edge */
+    }
+
+    /* Update Sticky Left Z-Index for Header Intersection */
+    .custom-table thead th.sticky-left {
+        z-index: 30;
+        /* Top Left Corner must be highest */
+        left: 0;
+    }
+
+    /* Ensure rowspan cells cover full height naturally */
+    .custom-table thead tr:nth-child(1) th[rowspan="2"] {
+        top: 0;
+        z-index: 30;
+        /* Keep main cols on top of row 2 scroll */
+    }
+
+    /* Standard Sticky Sequence Body Cells */
+    .custom-table tbody td.sticky-sequence {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background-color: #fff;
+        border-right: 1px solid #e2e8f0;
+    }
+
+    /* Standard Sticky Left Body Cells */
+    .custom-table tbody td.sticky-left {
+        position: sticky;
+        left: 50px;
+        z-index: 10;
+        background-color: #fff;
+        border-right: 1px solid #e2e8f0;
+        box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Responsive Removed: Fixed Desktop View */
+    body {
+        min-width: 1700px;
+        /* Reduced min-width */
+        overflow-x: auto;
+        background-color: #f7fafc;
+    }
+
+    .scroll-cell {
+        width: 490px;
+        max-width: 490px;
+        /* Ensure container is relative for absolute pos if needed? No, sticky works. */
+    }
+
+    .table-responsive {
+        overflow: visible;
+        /* Let body handle scroll, or if we want table internal scroll: */
+        /* User wants window scroll usually, but let's stick to Body scroll as per "Responsive Removed" request */
+        /* But wait, if we want Sticky Header, the scroll parent must be the window or a container with height. */
+        /* If body handles scroll x/y, sticky top 0 works. */
+    }
+
+    /* Procure Columns (Natural Flow) */
+    .th-procure {
+        background-color: #4a5568 !important;
+        color: white;
+    }
+
+    .bg-procure-light {
+        background-color: #fff;
+        /* Clean white rows for procure too, or very subtle tint? Ref image has white. */
+    }
+
+    /* Visual Enhancements */
+    /* Negative Stock Pill */
+    .val-negative {
+        background-color: #fed7d7;
+        /* Soft Red */
+        color: #c53030;
+        /* Strong Red */
+        border-radius: 9999px;
+        /* Pill */
+        padding: 4px 12px;
+        font-weight: 700;
+        font-size: 0.85em;
+        display: inline-block;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    /* Positive Stock Text */
+    .val-positive {
+        color: #2b6cb0;
+        font-weight: 700;
+    }
+
+    /* Inventory Blue */
+    .val-inventory {
+        color: #3182ce;
+        font-weight: 700;
+    }
+
+    /* Undelivered Red */
+    .val-alert {
+        color: #e53e3e;
+        font-weight: 600;
+    }
+
+    .hover-row:hover td {
+        background-color: #ebf8ff !important;
+        /* Light blue hover */
+    }
+
+    /* Sticky needs to handle hover carefully if transparent, but we set bg white */
+    .hover-row:hover td.sticky-left,
+    .hover-row:hover td.sticky-sequence {
+        background-color: #ebf8ff !important;
+    }
+
+    /* Keep sticky white */
+
+    .hover-row:hover td:not(.sticky-left) {
+        background-color: #f8fafc;
+    }
+
+    /* Global Center Alignment Override */
+    .custom-table th,
+    .custom-table td {
+        text-align: center !important;
+    }
+
+    /* Product Name Left Align */
+    .custom-table th.sticky-left,
+    .custom-table td.sticky-left {
+        text-align: left !important;
+        padding-left: 12px !important;
+    }
+
+    /* Search Input */
+    .search-input-group {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+
+    .search-input-group:focus-within {
+        border-color: #3182ce;
+        box-shadow: 0 0 0 1px #3182ce;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Header Controls -->
+    <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+        <h2 class="mb-0 fs-4 text-dark fw-bold text-nowrap"><i class="fas fa-chart-line text-primary me-2"></i>年度產銷計畫
+        </h2>
+
+        <div
+            class="d-flex flex-column flex-md-row gap-3 w-100 w-md-auto align-items-center justify-content-end ms-auto">
+            <div class="input-group search-input-group bg-white" style="width: 200px;">
+                <span class="input-group-text bg-transparent border-0 text-muted"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control border-0 shadow-none ps-0" id="productSearch"
+                    placeholder="搜尋產品..." onkeyup="filterDashboard()">
+            </div>
+
+            <select class="form-select border-1" id="mainCategoryFilter" onchange="filterDashboard()"
+                style="width: 140px; cursor: pointer;">
+                <option value="all">全部類別</option>
+                <option value="廚電">廚電</option>
+                <option value="小水">小水</option>
+                <option value="大水">大水</option>
+                <option value="氣泡水">氣泡水</option>
+            </select>
+
+            <button class="btn btn-primary px-4 fw-medium shadow-sm text-nowrap" data-bs-toggle="modal"
+                data-bs-target="#editForecastModal">
+                <i class="fas fa-pen me-2"></i>編輯預估
+            </button>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-card">
+            <div class="table-container">
+                <!-- Removed table-responsive to avoid double scrollbars if body handles it, but keeps structure -->
+                <table class="table custom-table">
+                    <colgroup>
+                        <col style="width: 50px;"> <!-- Seq -->
+                        <col style="width: 220px;"> <!-- Product -->
+                        <col style="width: 90px;"> <!-- Inventory -->
+                        <col style="width: 50px;"> <!-- Project -->
+                        <col style="width: 50px;"> <!-- Retail -->
+                        <col style="width: 50px;"> <!-- Avg -->
+                        <col style="width: 490px;"> <!-- Forecast -->
+                        <col style="width: 90px;"> <!-- Total -->
+                        <col style="width: 100px;"> <!-- Remaining -->
+                        <col style="width: 80px;"> <!-- Status (Reduced) -->
+                        <col style="width: 70px;"> <!-- Pending (Reduced) -->
+                        <col style="width: 100px;"> <!-- Expected (Reduced) -->
+                        <col style="width: 120px;"> <!-- Remarks (Reduced) -->
+                        <col style="width: 150px;"> <!-- Supplementary Notes -->
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th rowspan="2" class="sticky-sequence" style="font-size: 1.15rem;">No.</th>
+                            <th rowspan="2" class="sticky-left" style="font-size: 1.15rem;">產品名稱</th>
+                            <th rowspan="2" style="font-size: 1.15rem;">今日庫存</th>
+                            <th colspan="3" style="font-size: 1.15rem;">過去 12 個月銷量</th>
+
+                            <!-- Forecast Header: Row 1 (Title) -->
+                            <th class="scroll-cell p-0 text-center"
+                                style="vertical-align: middle; padding: 12px 8px !important; font-size: 1.15rem;">
+                                未來 12 個月建案預估需求
+                            </th>
+
+                            <th rowspan="2" class="text-white" style="font-size: 1.15rem;">建案預估<br>需求總計</th>
+
+                            <!-- Remaining Stock -->
+                            <th rowspan="2" class="text-white text-center" style="font-size: 1.15rem;">剩餘庫存</th>
+
+                            <!-- Procure Header -->
+                            <th colspan="4" class="text-center" style="font-size: 1.15rem;">採購追蹤資訊</th>
+
+                            <!-- Supplementary Notes (Moved to Top Level) -->
+                            <th rowspan="2" class="text-white text-center" style="font-size: 1.15rem;">補充說明</th>
+                        </tr>
+                        <tr>
+                            <!-- Sales Subheaders -->
+                            <th class="small text-white">建案</th>
+                            <th class="small text-white">零售</th>
+                            <th class="small text-white">零售<br>月均</th>
+
+                            <!-- Forecast Header: Row 2 (Months Scroll) -->
+                            <th class="scroll-cell p-0">
+                                <div class="scroll-wrapper header-sync" id="headerScroll">
+                                    {% for m in month_labels %}
+                                    <div class="scroll-item header-scroll-item">
+                                        {{ m }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </th>
+
+                            <!-- Procure Subheaders -->
+                            <th class="small">狀態</th>
+                            <th class="small">未到貨數量</th>
+                            <th class="small">預計到貨日期</th>
+                            <th class="small">備註</th>
+                            <!-- Removed Notes from here -->
+                        </tr>
+                    </thead>
+                    <tbody style="font-size: 1.05rem;">
+                        {% for row in data %}
+                        <tr data-category="{{ row.category }}" class="hover-row">
+                            <td class="sticky-sequence fw-bold text-secondary">{{ loop.index }}</td>
+                            <td class="sticky-left fw-semibold text-dark" style="font-size: 1.3rem;">
+                                <div class="text-wrap" title="{{ row.product_name }}">
+                                    {{ row.product_name }}
+                                </div>
+                            </td>
+                            <td class="fw-bold val-inventory" style="cursor: pointer;"
+                                onclick="showInventoryDetail('{{ row.product_name }}')">
+                                {{ row.today_inventory | int }}
+                            </td>
+                            <td class="text-muted">{{ row.project_sales_12m | int }}</td>
+                            <td class="text-muted">{{ row.retail_sales_12m | int }}</td>
+                            <td class="text-tiny text-secondary">{{ row.retail_monthly_avg }}</td>
+
+                            <!-- NEW MERGED FORECAST DATA CELL -->
+                            <td class="scroll-cell">
+                                <div class="scroll-wrapper body-sync" onscroll="syncScroll(this)">
+                                    {% for i in range(12) %}
+                                    {% set key = 'month_' ~ (i+1) %}
+                                    <div class="scroll-item" style="cursor: pointer;"
+                                        onclick="showForecastDetail('{{ row.product_name }}', {{ next_12_months_tuples[i][0] }}, {{ next_12_months_tuples[i][1] }})">
+                                        {% if row[key] > 0 %}
+                                        <span class="fw-bold text-dark">{{ row[key] | int }}</span>
+                                        {% else %}
+                                        <span class="text-black-50 small">-</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+
+                            <td class="fw-bold text-primary bg-light" style="cursor: pointer;"
+                                onclick="showForecastTotalDetail('{{ row.product_name }}')">{{ row.forecast_total | int
+                                }}
+                            </td>
+
+                            <!-- Remaining -->
+                            <td class="border-start">
+                                {% if row.remaining_stock < 0 %} <span class="val-negative">{{ row.remaining_stock | int
+                                    }}</span>
+                                    {% else %}
+                                    <span class="val-positive">{{ row.remaining_stock | int }}</span>
+                                    {% endif %}
+                            </td>
+
+                            <!-- Procure Info (Flowing naturally) -->
+                            <td class="border-start">
+                                {% if row.goods_status %}
+                                <span class="badge bg-secondary opacity-75 rounded-pill"
+                                    style="font-weight: normal; font-size: 0.75rem;">{{ row.goods_status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="val-alert border-start fw-bold" style="cursor: pointer;"
+                                onclick="showProcureDetail('{{ row.product_name }}')">
+                                {{ row.pending_qty | int if row.pending_qty else '-' }}
+                            </td>
+                            <td class="small text-nowrap border-start">
+                                {{ row.dispatch_date or '' }}
+                            </td>
+                            <td class="small text-muted border-start text-pre-wrap">{{ row.remarks or '' }}</td>
+
+                            <!-- Supplementary Notes -->
+                            <!-- Supplementary Notes -->
+                            <td class="border-start p-1" style="vertical-align: top;">
+                                {% if is_supervisor %}
+                                <textarea class="form-control form-control-sm border-0 bg-transparent" rows="3"
+                                    placeholder="輸入補充說明..." style="resize: vertical; font-size: 0.85rem;"
+                                    onblur="saveNote(this, '{{ row.product_name }}')">{{ row.note or '' }}</textarea>
+                                {% else %}
+                                <div class="text-start p-1 text-wrap" style="font-size: 0.85rem; min-height: 60px;">{{
+                                    row.note or '' }}</div>
+                                {% endif %}
+                                <div class="text-end text-muted fst-italic mt-1 updated-info"
+                                    style="font-size: 0.7rem;">
+                                    {% if row.updated_by %}
+                                    By {{ row.updated_by }} ({{ row.updated_at[:10] if row.updated_at else '' }})
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scroll Sync Logic
+        // When any .scroll-wrapper scrolls, update all others.
+        // To prevent infinite loops, we can use a flag or requestAnimationFrame, 
+        // but for simple sync, checking if value differs is often enough.
+
+        let isSyncing = false;
+        const scrollContainers = document.getElementsByClassName('scroll-wrapper');
+
+        function syncScroll(source) {
+            if (isSyncing) return;
+            isSyncing = true;
+
+            const left = source.scrollLeft;
+
+            // Use requestAnimationFrame for performance
+            requestAnimationFrame(() => {
+                for (let container of scrollContainers) {
+                    if (container !== source && Math.abs(container.scrollLeft - left) > 1) {
+                        container.scrollLeft = left;
+                    }
+                }
+                isSyncing = false;
+            });
+        }
+
+        // Attach listeners
+        // Note: The HTML onscroll="syncScroll(this)" handles body rows.
+        // We also need to catch the header scroll.
+        document.addEventListener('DOMContentLoaded', () => {
+            const headerScroll = document.getElementById('headerScroll');
+            if (headerScroll) {
+                headerScroll.addEventListener('scroll', () => syncScroll(headerScroll));
+            }
+        });
+    </script>
+
+    <!-- Edit Forecast Modal -->
+    <div class="modal fade" id="editForecastModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">編輯預估需求</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">選擇區域</label>
+                            <select class="form-select" id="regionSelect" onchange="loadForecastData()">
+                                <option value="業務本部">業務本部</option>
+                                <option value="桃竹苗事業部">桃竹苗事業部</option>
+                                <option value="中區事業部">中區事業部</option>
+                                <option value="南區事業部">南區事業部</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">產品類別篩選</label>
+                            <select class="form-select" id="modalCategoryFilter" onchange="filterModalTable()">
+                                <option value="all">全部</option>
+                                <option value="廚電">廚電</option>
+                                <option value="小水">小水</option>
+                                <option value="大水">大水</option>
+                                <option value="氣泡水">氣泡水</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">搜尋產品</label>
+                            <input type="text" class="form-control" id="modalProductSearch" placeholder="輸入關鍵字..."
+                                onkeyup="filterModalTable()">
+                        </div>
+                        <div class="col-md-3 text-end align-self-end">
+                            <span class="text-muted small">修改後請務必點擊儲存</span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                        <table class="table table-sm table-bordered" id="editForecastTable">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width: 200px;">產品名稱</th>
+                                    {% for m in month_labels %}
+                                    <th class="text-center">{{ m }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody id="editForecastBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveForecast()">
+                        <i class="fas fa-save"></i> 儲存變更
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Detail Modal -->
+    <div class="modal fade" id="inventoryDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="invDetailTitle">庫存明細</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>倉庫</th>
+                                <th class="text-end">數量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invDetailBody">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Detail Modal -->
+    <div class="modal fade" id="forecastDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="fcDetailTitle">預估明細</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>區域</th>
+                                <th class="text-end">數量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fcDetailBody">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const next12Months = {{ next_12_months_tuples | tojson }};
+        // Now productList is dict: {name: category}
+        const productData = {};
+        {% for row in data %}
+        productData["{{ row.product_name }}"] = "{{ row.category }}";
+        {% endfor %}
+        const productList = Object.keys(productData); // List of names
+
+        function filterDashboard() {
+            const catFilter = document.getElementById('mainCategoryFilter').value;
+            const searchFilter = document.getElementById('productSearch').value.trim().toLowerCase();
+            const rows = document.querySelectorAll('tbody tr[data-category]');
+
+            rows.forEach(row => {
+                const cat = row.getAttribute('data-category');
+                const prodName = row.innerText.toLowerCase(); // Or select specific td for name
+
+                // Check Category
+                const matchesCat = (catFilter === 'all' || cat === catFilter);
+
+                // Check Search
+                const matchesSearch = (!searchFilter || prodName.includes(searchFilter));
+
+                if (matchesCat && matchesSearch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Also sync modal filter if possible, or just let users decide
+            if (document.getElementById('modalCategoryFilter')) {
+                document.getElementById('modalCategoryFilter').value = filter;
+            }
+        }
+
+        async function showInventoryDetail(productName) {
+            const modalEl = document.getElementById('inventoryDetailModal');
+            const modalTitle = document.getElementById('invDetailTitle');
+            const modalBody = document.getElementById('invDetailBody');
+
+            modalTitle.innerText = `${productName} - 庫存`;
+            modalBody.innerHTML = '<tr><td colspan="2" class="text-center">載入中...</td></tr>';
+
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+
+            try {
+                const response = await fetch(`/psi/get_inventory_detail?product_name=${encodeURIComponent(productName)}`);
+                const data = await response.json();
+
+                modalBody.innerHTML = '';
+                if (data.length === 0) {
+                    modalBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">無庫存資料</td></tr>';
+                    return;
+                }
+
+                let total = 0;
+                data.forEach(item => {
+                    modalBody.innerHTML += `
+                    <tr>
+                        <td>${item.warehouse_name}</td>
+                        <td class="text-end fw-bold">${item.quantity}</td>
+                    </tr>
+                `;
+                    total += item.quantity;
+                });
+
+                // Add Total Row
+                modalBody.innerHTML += `
+                <tr class="table-dark">
+                    <td>總計</td>
+                    <td class="text-end fw-bold">${total}</td>
+                </tr>
+            `;
+
+            } catch (error) {
+                console.error(error);
+                if (error.message.includes('Unexpected token') || error.message.includes('Unauthorized')) {
+                    alert('您的登入已逾時，請重新登入。');
+                    window.location.href = '/Internal_Portal';
+                } else {
+                    modalBody.innerHTML = '<tr><td colspan="2" class="text-center text-danger">載入失敗</td></tr>';
+                }
+            }
+        }
+
+        async function showForecastDetail(productName, year, month) {
+            const modalEl = document.getElementById('forecastDetailModal');
+            const modalTitle = document.getElementById('fcDetailTitle');
+            const modalBody = document.getElementById('fcDetailBody');
+
+            modalTitle.innerText = `${productName} (${year}/${month})`;
+            modalBody.innerHTML = '<tr><td colspan="2" class="text-center">載入中...</td></tr>';
+
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+
+            try {
+                const response = await fetch(`/psi/get_forecast_detail_by_month?product_name=${encodeURIComponent(productName)}&year=${year}&month=${month}`);
+                const data = await response.json();
+
+                modalBody.innerHTML = '';
+                let total = 0;
+
+                // Loop through known regions to keep order
+                const regions = ["業務本部", "桃竹苗事業部", "中區事業部", "南區事業部"];
+
+                regions.forEach(region => {
+                    const qty = data[region] || 0;
+                    modalBody.innerHTML += `
+                    <tr>
+                        <td>${region}</td>
+                        <td class="text-end fw-bold">${qty}</td>
+                    </tr>
+                `;
+                    total += qty;
+                });
+
+                // Add Total Row
+                modalBody.innerHTML += `
+                <tr class="table-dark">
+                    <td>總計</td>
+                    <td class="text-end fw-bold">${total}</td>
+                </tr>
+            `;
+
+            } catch (error) {
+                console.error(error);
+                if (error.message.includes('Unexpected token') || error.message.includes('Unauthorized')) {
+                    alert('您的登入已逾時，請重新登入。');
+                    window.location.href = '/Internal_Portal';
+                } else {
+                    modalBody.innerHTML = '<tr><td colspan="2" class="text-center text-danger">載入失敗</td></tr>';
+                }
+            }
+        }
+
+        async function showProcureDetail(productName) {
+            const modalEl = document.getElementById('procureDetailModal');
+            const modalTitle = document.getElementById('procureDetailTitle');
+            const modalBody = document.getElementById('procureDetailBody');
+
+            modalTitle.innerText = `${productName} - 到貨進度明細`;
+            modalBody.innerHTML = '<tr><td colspan="6" class="text-center">載入中...</td></tr>';
+
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+
+            try {
+                const response = await fetch(`/psi/get_procure_detail?product_name=${encodeURIComponent(productName)}`);
+                const data = await response.json();
+
+                modalBody.innerHTML = '';
+                if (data.length === 0 || data.error) {
+                    modalBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">無未到貨資料</td></tr>';
+                    return;
+                }
+
+                data.forEach(item => {
+                    modalBody.innerHTML += `
+                    <tr>
+                        <td class="text-start">${item.product_name}</td>
+                        <td>${item.goods_status || ''}</td>
+                        <td class="fw-bold text-danger">${item.pending_qty}</td>
+                        <td>${item.dispatch_date || ''}</td>
+                        <td class="text-start text-pre-wrap small">${item.remarks || ''}</td>
+                        <td>${item.warehouse || ''}</td>
+                    </tr>
+                `;
+                });
+
+            } catch (error) {
+                console.error(error);
+                modalBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">載入失敗</td></tr>';
+            }
+        }
+
+        async function showForecastTotalDetail(productName) {
+            const modalEl = document.getElementById('forecastDetailModal');
+            const modalTitle = document.getElementById('fcDetailTitle');
+            const modalBody = document.getElementById('fcDetailBody');
+
+            modalTitle.innerText = `${productName} (未來12個月總計)`;
+            modalBody.innerHTML = '<tr><td colspan="2" class="text-center">載入中...</td></tr>';
+
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+
+            try {
+                const response = await fetch(`/psi/get_forecast_detail_total?product_name=${encodeURIComponent(productName)}`);
+                const data = await response.json();
+
+                modalBody.innerHTML = '';
+                let total = 0;
+
+                // Loop through known regions to keep order
+                const regions = ["業務本部", "桃竹苗事業部", "中區事業部", "南區事業部"];
+
+                regions.forEach(region => {
+                    const qty = data[region] || 0;
+                    modalBody.innerHTML += `
+                    <tr>
+                        <td>${region}</td>
+                        <td class="text-end fw-bold">${qty}</td>
+                    </tr>
+                `;
+                    total += qty;
+                });
+
+                // Add Total Row
+                modalBody.innerHTML += `
+                <tr class="table-dark">
+                    <td>總計</td>
+                    <td class="text-end fw-bold">${total}</td>
+                </tr>
+            `;
+
+            } catch (error) {
+                console.error(error);
+                if (error.message.includes('Unexpected token') || error.message.includes('Unauthorized')) {
+                    alert('您的登入已逾時，請重新登入。');
+                    window.location.href = '/Internal_Portal';
+                } else {
+                    modalBody.innerHTML = '<tr><td colspan="2" class="text-center text-danger">載入失敗</td></tr>';
+                }
+            }
+        }
+
+        function filterModalTable() {
+            const catFilter = document.getElementById('modalCategoryFilter').value;
+            const searchVal = document.getElementById('modalProductSearch').value.trim().toLowerCase();
+            const rows = document.querySelectorAll('#editForecastBody tr');
+
+            rows.forEach(row => {
+                const cat = row.getAttribute('data-category');
+                // Assuming the first TD is the name. If we add cols, this might change, 
+                // but currently the structure is Name + 12 months.
+                const prodName = row.cells[0].innerText.toLowerCase();
+
+                const matchCat = (catFilter === 'all' || cat === catFilter);
+                const matchSearch = (searchVal === '' || prodName.includes(searchVal));
+
+                if (matchCat && matchSearch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function checkForecastValue(el) {
+            const val = parseFloat(el.value) || 0;
+            if (val > 0) {
+                el.classList.add('text-danger', 'fw-bold');
+            } else {
+                el.classList.remove('text-danger', 'fw-bold');
+            }
+        }
+
+        async function loadForecastData() {
+            const region = document.getElementById('regionSelect').value;
+            const tbody = document.getElementById('editForecastBody');
+            const saveBtn = document.querySelector('#editForecastModal .modal-footer button[onclick="saveForecast()"]');
+
+            tbody.innerHTML = '<tr><td colspan="13" class="text-center">載入中...</td></tr>';
+            if (saveBtn) saveBtn.disabled = true;
+
+            try {
+                // Sync filter from main page
+                const mainFilter = document.getElementById('mainCategoryFilter').value;
+                const modalFilter = document.getElementById('modalCategoryFilter');
+                if (modalFilter && mainFilter !== 'all') {
+                    modalFilter.value = mainFilter;
+                }
+
+                const [permResponse, dataResponse] = await Promise.all([
+                    fetch(`/psi/get_region_permission?region=${encodeURIComponent(region)}`),
+                    fetch(`/psi/get_forecast_by_region?region=${encodeURIComponent(region)}`)
+                ]);
+
+                const permData = await permResponse.json();
+                const data = await dataResponse.json();
+                const isAllowed = permData.allowed === true;
+
+                if (saveBtn) {
+                    saveBtn.disabled = !isAllowed;
+                    if (!isAllowed) {
+                        saveBtn.innerHTML = '<i class="fas fa-ban"></i> 無編輯權限';
+                        saveBtn.classList.remove('btn-primary');
+                        saveBtn.classList.add('btn-secondary');
+                    } else {
+                        saveBtn.innerHTML = '<i class="fas fa-save me-1"></i> 儲存變更';
+                        saveBtn.classList.remove('btn-secondary');
+                        saveBtn.classList.add('btn-primary');
+                    }
+                }
+
+                tbody.innerHTML = '';
+
+                productList.forEach(prod => {
+                    const cat = productData[prod];
+                    const tr = document.createElement('tr');
+                    tr.setAttribute('data-category', cat);
+
+                    // Product Name
+                    tr.innerHTML = `<td class="fw-bold text-start ps-3">${prod}</td>`;
+
+                    // 12 Months Inputs
+                    next12Months.forEach(ym => {
+                        const year = ym[0];
+                        const month = ym[1];
+                        const key = `${year}-${month}`;
+                        const val = (data[prod] && data[prod][key]) ? data[prod][key] : 0;
+                        const disabledAttr = isAllowed ? '' : 'disabled';
+                        let bgClass = isAllowed ? '' : 'bg-secondary bg-opacity-25';
+                        const colorClass = (val > 0) ? 'text-danger fw-bold' : '';
+
+                        tr.innerHTML += `
+                    <td>
+                        <input type="number" class="form-control form-control-sm text-end forecast-input ${bgClass} ${colorClass}" 
+                            data-product="${prod}" 
+                            data-year="${year}" 
+                            data-month="${month}" 
+                            value="${val}" 
+                            min="0"
+                            ${disabledAttr}
+                            oninput="checkForecastValue(this)"
+                            style="min-width: 60px;">
+                    </td>
+                `;
+                    });
+
+                    tbody.appendChild(tr);
+                });
+
+                // Apply filter immediately after loading
+                filterModalTable();
+
+            } catch (error) {
+                console.error('Error:', error);
+                if (error.message && (error.message.includes('Unexpected token') || error.message.includes('Unauthorized'))) {
+                    alert('您的登入已逾時，請重新登入。');
+                    window.location.href = '/Internal_Portal';
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="13" class="text-center text-danger">載入失敗: ' + (error.message || error) + '</td></tr>';
+                }
+            }
+        }
+
+        async function saveForecast() {
+            const region = document.getElementById('regionSelect').value;
+            const inputs = document.querySelectorAll('.forecast-input');
+            const updates = [];
+
+            inputs.forEach(input => {
+                const val = parseInt(input.value) || 0;
+                // Optimization: Only send if needed? For now send all or check simple dirty logic?
+                // Let's send all visible for simplicity of "Edit Mode", or better, 
+                // normally we track changes. But sending all for current filtered region is safe for Upsert.
+                // Actually, creating a huge JSON might be slow. 
+                // Better: Compare to initial value? 
+                // For prototype, let's just collect all non-zero or all. 
+                // Let's collect ALL to ensure 0 is saved if user cleared it.
+
+                updates.push({
+                    product_name: input.dataset.product,
+                    year: parseInt(input.dataset.year),
+                    month: parseInt(input.dataset.month),
+                    quantity: val
+                });
+            });
+
+            try {
+                const btn = document.querySelector('button[onclick="saveForecast()"]');
+                const origText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 儲存中...';
+
+                const response = await fetch('/psi/update_forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ region, updates })
+                });
+
+                if (response.ok) {
+                    alert('儲存成功！');
+                    location.reload(); // Refresh dashboard to recalculate
+                } else {
+                    alert('儲存失敗');
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = origText;
+
+            } catch (error) {
+                console.error('Save error:', error);
+                if (error.message.includes('Unexpected token') || error.message.includes('Unauthorized')) {
+                    alert('您的登入已逾時，請重新登入。');
+                    window.location.href = '/Internal_Portal';
+                } else {
+                    alert('發生錯誤: ' + error.message);
+                }
+            }
+        }
+
+        async function saveNote(textarea, productName) {
+            const note = textarea.value.trim();
+            const originalVal = textarea.defaultValue;
+
+            if (note === originalVal) return; // No change
+
+            try {
+                textarea.disabled = true;
+                const response = await fetch('/psi/update_note', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_name: productName, note: note })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    textarea.defaultValue = note; // Update baseline
+                    textarea.classList.add('is-valid');
+                    setTimeout(() => textarea.classList.remove('is-valid'), 2000);
+
+                    // Update Info Text
+                    const infoDiv = textarea.parentElement.querySelector('.updated-info');
+                    if (infoDiv && result.updated_by && result.updated_at) {
+                        infoDiv.innerText = `By ${result.updated_by} (${result.updated_at})`;
+                    }
+                } else {
+                    alert('儲存失敗: ' + (result.error || 'Unknown error'));
+                    textarea.value = originalVal; // Revert
+                }
+            } catch (error) {
+                console.error(error);
+                alert('儲存錯誤');
+            } finally {
+                textarea.disabled = false;
+            }
+        }
+
+        // Initial load when modal opens
+        const modal = document.getElementById('editForecastModal');
+        modal.addEventListener('shown.bs.modal', function () {
+            loadForecastData();
+        });
+    </script>
+    <!-- Procure Detail Modal -->
+    <div class="modal fade" id="procureDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="procureDetailTitle">到貨明細</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-bordered text-center align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>商品</th>
+                                    <th>狀態</th>
+                                    <th>未到貨數量</th>
+                                    <th>預計到貨日期</th>
+                                    <th>備註</th>
+                                    <th>倉庫</th>
+                                </tr>
+                            </thead>
+                            <tbody id="procureDetailBody">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}

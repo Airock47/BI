@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm" style="height: 80vh; display: flex; flex-direction: column;">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-robot me-2"></i>AI 業務助理 (Beta)</h5>
+                <span class="badge bg-light text-dark">Powered by Google Gemini</span>
+            </div>
+
+            <!-- Chat History Area -->
+            <div class="card-body" id="chat-container" style="flex: 1; overflow-y: auto; background-color: #f8f9fa;">
+                <div class="d-flex justify-content-start mb-3">
+                    <div class="p-3 bg-white rounded shadow-sm border" style="max-width: 80%;">
+                        <p class="mb-0">您好 {{ session.get('name', '夥伴') }}！我是您的專屬業務助理。</p>
+                        <p class="mb-0 text-muted small mt-1">您可以問我「上個月銷售總額」、「查詢某客戶的訂單」或「分析我的業績趨勢」。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="card-footer bg-white">
+                <div class="input-group">
+                    <input type="text" id="user-input" class="form-control" placeholder="請用白話文輸入您的問題..."
+                        aria-label="User question">
+                    <button class="btn btn-primary" type="button" id="send-btn">
+                        <i class="fas fa-paper-plane"></i> 發送
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function appendMessage(role, content, chartConfig = null, sql = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `d-flex justify-content-${role === 'user' ? 'end' : 'start'} mb-3`;
+
+            let innerHtml = '';
+            if (role === 'user') {
+                innerHtml = `
+                <div class="p-3 bg-primary text-white rounded shadow-sm" style="max-width: 80%;">
+                    ${content}
+                </div>
+            `;
+            } else {
+                // System/AI response
+                innerHtml = `
+                <div class="p-3 bg-white rounded shadow-sm border" style="max-width: 80%; width: 100%;">
+                    <div class="markdown-body mb-2">${marked.parse(content)}</div>
+                    ${chartConfig ? '<div class="chart-container" style="position: relative; height:300px; width:100%"><canvas id="chart-' + Date.now() + '"></canvas></div>' : ''}
+                    ${sql ? `<div class="mt-2"><button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#sql-${Date.now()}" aria-expanded="false">查看 SQL</button><div class="collapse mt-1" id="sql-${Date.now()}"><div class="card card-body bg-light small font-monospace">${sql}</div></div></div>` : ''}
+                </div>
+            `;
+            }
+
+            messageDiv.innerHTML = innerHtml;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Render Chart if exists
+            if (role === 'ai' && chartConfig) {
+                const canvasId = messageDiv.querySelector('canvas').id;
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                new Chart(ctx, chartConfig);
+            }
+        }
+
+        function handleSend() {
+            const question = userInput.value.trim();
+            if (!question) return;
+
+            // 1. Show user message
+            appendMessage('user', question);
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // 2. Show loading
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.className = 'd-flex justify-content-start mb-3';
+            loadingDiv.innerHTML = '<div class="p-3 bg-white rounded shadow-sm border"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> <span class="text-muted ms-2">AI 正在思考並查詢資料庫...</span></div>';
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 3. Call API
+            fetch('{{ url_for("ai_analysis.ask") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: question })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Remove loading
+                    document.getElementById('loading-indicator').remove();
+
+                    if (data.error) {
+                        appendMessage('ai', `❌ **錯誤**: ${data.error}`);
+                    } else {
+                        appendMessage('ai', data.answer, data.chart, data.sql);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading-indicator').remove();
+                    appendMessage('ai', `❌ **連線錯誤**: ${error}`);
+                })
+                .finally(() => {
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                });
+        }
+
+        sendBtn.addEventListener('click', handleSend);
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') handleSend();
+        });
+    });
+</script>
+{% endblock %}

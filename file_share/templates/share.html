@@ -1,0 +1,328 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">資料共享</h4>
+    <div>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-dark btn-sm me-2">回主畫面</a>
+      <button id="btn-mkdir" class="btn btn-outline-secondary btn-sm">新資料夾</button>
+      <label class="btn btn-primary btn-sm mb-0">
+        上傳
+        <input id="file-input" type="file" name="files[]" multiple hidden />
+      </label>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-2">
+    <div class="col-md-6 d-flex gap-2">
+      <input id="search" type="text" class="form-control" placeholder="輸入檔名關鍵字" />
+      <button id="btn-clear" class="btn btn-outline-secondary">清除</button>
+    </div>
+    <div class="col-md-6 text-end text-muted">
+      <small>位置：<span id="crumb"></span></small>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-2" id="toolbar">
+    <div>
+      <button class="btn btn-outline-secondary btn-sm" id="btn-up">上一層</button>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span id="count-info" class="text-muted small"></span>
+      <button class="btn btn-outline-primary btn-sm" id="prev">上一頁</button>
+      <span id="page-info"></span>
+      <button class="btn btn-outline-primary btn-sm" id="next">下一頁</button>
+      <select id="page-size" class="form-select form-select-sm" style="width:90px">
+        <option value="10">10</option>
+        <option value="20" selected>20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-hover" id="files-table">
+      <thead>
+        <tr>
+          <th data-sort="name" style="cursor:pointer">檔名</th>
+          <th data-sort="type" style="width:100px;cursor:pointer">類型</th>
+          <th data-sort="size" style="width:140px;cursor:pointer">大小</th>
+          <th data-sort="modified_at" style="width:220px;cursor:pointer">最後更新</th>
+          <th style="width:140px">上傳者</th>
+          <th style="width:240px">操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  
+
+  <div class="mt-3" id="error" style="display:none">
+    <div class="alert alert-danger py-2" id="error-text"></div>
+  </div>
+
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="previewDrawer" style="width: 60%">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="preview-title">預覽</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-0" style="height: calc(100vh - 56px); position: relative;">
+      <div id="preview-progress" class="progress" style="height:6px; position:absolute; top:0; left:0; right:0; display:none;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+      </div>
+      <div id="image-toolbar" class="d-flex gap-2 align-items-center p-2 border-bottom" style="display:none;">
+        <button class="btn btn-sm btn-outline-secondary" id="zoom-in">放大</button>
+        <button class="btn btn-sm btn-outline-secondary" id="zoom-out">縮小</button>
+        <button class="btn btn-sm btn-outline-secondary" id="zoom-fit">適合寬度</button>
+        <button class="btn btn-sm btn-outline-secondary" id="zoom-100">實際大小</button>
+        <span class="ms-auto small text-muted" id="zoom-info">100%</span>
+      </div>
+      <div id="image-container" style="display:none; width:100%; height: calc(100% - 46px); overflow:auto; background:#f8f9fa;">
+        <img id="preview-image" alt="預覽圖片" style="display:block; margin:0 auto; max-width:none;" />
+      </div>
+      <iframe id="preview-frame" style="border:0;width:100%;height:100%"></iframe>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const api = {
+    list: '/api/share/files',
+    upload: '/api/share/upload',
+    download: '/api/share/download',
+    preview: '/api/share/preview',
+    mkdir: '/api/share/mkdir',
+    file: '/api/share/file'
+  };
+  const currentUser = {{ (current_user|tojson)|safe }};
+  const isAdmin = {{ 'true' if is_admin else 'false' }};
+
+  let state = {
+    path: '',
+    q: '',
+    page: 1,
+    size: 20,
+    sort: 'modified_at',
+    order: 'desc',
+    total: 0
+  };
+
+  function fmtSize(bytes){
+    if (!bytes) return '-';
+    const units=['B','KB','MB','GB','TB'];
+    let i=0; let n=bytes;
+    while(n>=1024&&i<units.length-1){n/=1024;i++;}
+    return n.toFixed(i?1:0)+' '+units[i];
+  }
+
+  function crumb(){
+    const parts = state.path.split('/').filter(Boolean);
+    let cur='';
+    const a = ['<a href="#" data-path="">根目錄</a>'];
+    for (const p of parts){
+      cur = cur ? cur + '/' + p : p;
+      a.push(`<span class="text-muted"> / </span><a href="#" data-path="${cur}">${p}</a>`);
+    }
+    $('#crumb').html(a.join(''));
+    $('#crumb a').click(function(e){e.preventDefault(); state.path=$(this).data('path'); state.page=1; load();});
+  }
+
+  function load(){
+    $('#error').hide();
+    $.get(api.list, { path: state.path, q: state.q, page: state.page, size: state.size, sort: state.sort, order: state.order })
+     .done(res => {
+        state.total = res.total;
+        const tbody = $('#files-table tbody').empty();
+        res.items.forEach(it => {
+          const rel = (it.rel_path || (state.path ? state.path + '/' + it.name : it.name)).replace(/\\\\/g,'/');
+          const dirPart = rel.split('/').slice(0, -1).join('/');
+          const displayName = it.is_dir ? it.name : (function(n){ const i=n.lastIndexOf('.'); return i>0 ? n.substring(0,i) : n; })(it.name);
+          const nameCell = it.is_dir ? `<a href="#" class="enter" data-path="${rel}"><i class="fa fa-folder me-1"></i>${displayName}</a>` : `${displayName}`;
+          let ops = '';
+          if (!it.is_dir) {
+            const dl = `${api.download}?path=${encodeURIComponent(dirPart)}&name=${encodeURIComponent(it.name)}`;
+            const canRename = (isAdmin || (it.uploader && it.uploader === currentUser));
+            const canDelete = (isAdmin || canRename);
+            ops = `
+              <button class="btn btn-sm btn-outline-secondary me-1 preview" data-path="${dirPart}" data-name="${it.name}">預覽</button>
+              <a class="btn btn-sm btn-outline-primary me-1" href="${dl}">下載</a>
+              ${canRename ? `<button class="btn btn-sm btn-outline-warning me-1 rename" data-path="${dirPart}" data-name="${it.name}">重新命名</button>` : ''}
+              ${canDelete ? `<button class="btn btn-sm btn-outline-danger delete" data-path="${dirPart}" data-name="${it.name}">刪除</button>` : ''}
+            `;
+          } else {
+            // Directory row: allow admin to rename folder
+            const canRenameDir = isAdmin;
+            if (canRenameDir) {
+              ops = `
+                <button class="btn btn-sm btn-outline-warning me-1 rename" data-path="${dirPart}" data-name="${it.name}">重新命名</button>
+              `;
+            }
+          }
+          const tr = $('<tr/>');
+          tr.append($('<td/>').html(nameCell));
+          tr.append($('<td/>').text(it.is_dir ? 'dir' : (it.type||'')));
+          tr.append($('<td/>').text(it.is_dir ? '-' : fmtSize(it.size)));
+          tr.append($('<td/>').text(it.modified_at_display || it.modified_at.replace('T',' ')));
+          tr.append($('<td/>').text(it.uploader_name || it.uploader || '-'));
+          tr.append($('<td/>').html(ops));
+          tbody.append(tr);
+        });
+        const pages = Math.max(1, Math.ceil(state.total/state.size));
+        $('#page-info').text(`${state.page} / ${pages}`);
+        $('#count-info').text(`共 ${state.total} 筆`);
+        crumb();
+     })
+     .fail(xhr => {
+        $('#error-text').text(xhr.responseJSON?.error || '發生錯誤');
+        $('#error').show();
+     });
+  }
+
+  $(function(){
+    load();
+
+    $('#search').on('keypress', function(e){ if(e.which===13){ state.q=this.value.trim(); state.page=1; load(); }});
+    $('#btn-clear').on('click', function(){ $('#search').val(''); state.q=''; state.page=1; load(); });
+    $('#page-size').change(function(){ state.size=parseInt(this.value); state.page=1; load(); });
+    $('#prev').click(function(){ if(state.page>1){ state.page--; load(); }});
+    $('#next').click(function(){ const pages=Math.max(1, Math.ceil(state.total/state.size)); if(state.page<pages){ state.page++; load(); }});
+    $('#btn-up').click(function(){ if(!state.path) return; const parts=state.path.split('/').filter(Boolean); parts.pop(); state.path=parts.join('/'); state.page=1; load();});
+
+    $('#files-table thead th[data-sort]').click(function(){
+      const f=$(this).data('sort');
+      if(state.sort===f){ state.order = state.order==='asc'?'desc':'asc'; } else { state.sort=f; state.order='asc'; }
+      load();
+    });
+
+    $('#files-table').on('click', 'a.enter', function(e){ e.preventDefault(); const rel=$(this).data('path'); state.path = rel; state.page=1; load(); });
+
+    $('#files-table').on('click', 'button.preview', function(){
+      const name=$(this).data('name');
+      const dir=$(this).data('path');
+      const offcanvas = new bootstrap.Offcanvas('#previewDrawer');
+      $('#preview-progress').show();
+      // reset views
+      $('#image-toolbar').hide();
+      $('#image-container').hide();
+      $('#preview-frame').hide().attr('src','');
+      offcanvas.show();
+
+      $.get(api.preview, { path: dir, name })
+       .done(res => {
+          if(res.ok && res.viewer_url){
+            $('#preview-title').text(name);
+            if(res.kind === 'image'){
+              // image mode with zoom
+              const img = $('#preview-image');
+              img.off('load').on('load', function(){ $('#preview-progress').hide(); updateZoomInfo(); });
+              img.attr('src', res.viewer_url);
+              $('#image-toolbar').show();
+              $('#image-container').show();
+              $('#preview-frame').hide();
+              // init zoom
+              window._imgZoom = 1.0;
+              window._imgNaturalWidth = null;
+              // store natural size once loaded
+              img.on('load', function(){
+                window._imgNaturalWidth = this.naturalWidth;
+                applyZoom();
+              });
+            } else {
+              // pdf mode in iframe
+              const frame = $('#preview-frame');
+              frame.off('load').on('load', function(){ $('#preview-progress').hide(); });
+              frame.attr('src', res.viewer_url).show();
+            }
+          } else {
+            $('#preview-progress').hide();
+            alert(res.error||'無法預覽');
+          }
+       })
+       .fail(xhr => { $('#preview-progress').hide(); alert(xhr.responseJSON?.error || '無法預覽'); });
+    });
+
+    $(document).on('click', '#files-table button.rename', function(){
+      const oldName=$(this).data('name');
+      const dir=$(this).data('path');
+      const dotIndex = oldName.lastIndexOf('.');
+      const base = dotIndex>0 ? oldName.substring(0,dotIndex) : oldName;
+      const ext = dotIndex>0 ? oldName.substring(dotIndex) : '';
+      const newBase=prompt('輸入新檔名（不含副檔名）：', base);
+      if(!newBase || newBase===base) return;
+      const newName = newBase + ext;
+      $.ajax({ url:'/api/share/rename', method:'POST', contentType:'application/json', data: JSON.stringify({ path: dir, old_name: oldName, new_name: newName }) })
+        .done(res=>{ if(res.ok){ load(); } else { alert(res.error||'重新命名失敗'); } })
+        .fail(xhr=>alert(xhr.responseJSON?.error||'重新命名失敗'))
+    });
+
+    $(document).on('click', '#files-table button.delete', function(){
+      const name=$(this).data('name');
+      const dir=$(this).data('path');
+      if(!confirm('確定刪除檔案：'+name+' ?')) return;
+      $.ajax({ url: api.file+`?path=${encodeURIComponent(dir)}&name=${encodeURIComponent(name)}`, method: 'DELETE' })
+       .done(res=>{ if(res.ok){ load(); } else { alert(res.error||'刪除失敗'); } })
+       .fail(xhr=>alert(xhr.responseJSON?.error||'刪除失敗'))
+    });
+
+    $('#file-input').change(function(){
+      const files = this.files; if(!files || !files.length) return;
+      const fd = new FormData();
+      for (const f of files) fd.append('files[]', f);
+      const xhr = new XMLHttpRequest();
+      const url = api.upload + '?path=' + encodeURIComponent(state.path);
+      xhr.open('POST', url);
+      xhr.upload.onprogress = function(e){ if(e.lengthComputable){ const p = Math.round(e.loaded*100/e.total); $('#error-text').text('上傳中... '+p+'%'); $('#error').show(); }}
+      xhr.onload = function(){
+        $('#error').hide();
+        if (xhr.status>=200 && xhr.status<300){ try{ const res=JSON.parse(xhr.responseText); if(res.ok){ load(); } else { alert(res.error||'上傳失敗'); } } catch{ alert('上傳失敗'); } }
+        else { alert('上傳失敗'); }
+        $('#file-input').val('');
+      };
+      xhr.onerror = function(){ alert('上傳錯誤'); $('#file-input').val(''); };
+      xhr.send(fd);
+    });
+
+    $('#btn-mkdir').click(function(){
+      const name = prompt('輸入新資料夾名稱：');
+      if(!name) return;
+      $.ajax({url: api.mkdir, method:'POST', contentType:'application/json', data: JSON.stringify({ path: state.path, name })})
+       .done(()=>load())
+       .fail(xhr=>alert(xhr.responseJSON?.error||'建立失敗'))
+    });
+  });
+
+  // Image zoom helpers
+  function applyZoom(){
+    const img = document.getElementById('preview-image');
+    if(!img) return;
+    const z = window._imgZoom || 1.0;
+    if(window._imgNaturalWidth){
+      img.style.width = (window._imgNaturalWidth * z) + 'px';
+    } else {
+      img.style.transform = 'scale('+z+')';
+      img.style.transformOrigin = 'center center';
+    }
+    updateZoomInfo();
+  }
+  function updateZoomInfo(){
+    const z = Math.round(((window._imgZoom||1.0)*100));
+    $('#zoom-info').text(z+'%');
+  }
+  $(document).on('click', '#zoom-in', function(){ window._imgZoom = Math.min((window._imgZoom||1.0)+0.1, 5); applyZoom(); });
+  $(document).on('click', '#zoom-out', function(){ window._imgZoom = Math.max((window._imgZoom||1.0)-0.1, 0.2); applyZoom(); });
+  $(document).on('click', '#zoom-fit', function(){
+    const container = document.getElementById('image-container');
+    const img = document.getElementById('preview-image');
+    if(container && img && img.naturalWidth){
+      const usable = container.clientWidth - 24; // padding margin
+      window._imgZoom = Math.max(usable / img.naturalWidth, 0.1);
+      applyZoom();
+    }
+  });
+  $(document).on('click', '#zoom-100', function(){ window._imgZoom = 1.0; applyZoom(); });
+</script>
+{% endblock %}

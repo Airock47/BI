@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>庫存查詢系統</title>
+    <!-- FontAwesome v6.4.0 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --navbar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --text-dark: #2c3e50;
+            --text-muted: #7f8c8d;
+            --color-business: #3498db;
+            --color-assistant: #1abc9c;
+            --color-sales: #9b59b6;
+            --color-crm: #f39c12;
+            --color-inventory: #27ae60;
+            --color-share: #7f8c8d;
+            --color-procure: #e74c3c;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Navbar Style */
+        .navbar {
+            background-color: var(--navbar-bg);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        .navbar-brand img {
+            height: 45px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-welcome {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Search Section Style */
+        .search-section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+            margin: 2rem auto;
+            max-width: 1100px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            color: var(--color-inventory);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            transition: var(--transition);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--color-inventory);
+            box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+        }
+
+        .btn-search {
+            background-color: var(--color-inventory);
+            color: white;
+            padding: 0.7rem 2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn-search:hover {
+            background-color: #219150;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.2);
+        }
+
+        .btn-clear {
+            background-color: #6c757d;
+            color: white;
+            padding: 0.7rem 2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn-clear:hover {
+            background-color: #5a6268;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Results Section */
+        .results-section {
+            max-width: 1100px;
+            margin: 0 auto 3rem;
+        }
+
+        .results-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+            padding: 1.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Table Styles */
+        .table thead th {
+            background-color: #f8f9fa;
+            color: var(--text-dark);
+            font-weight: 700;
+            border-bottom: 2px solid #eee;
+            padding: 15px 10px;
+        }
+
+        .table td {
+            vertical-align: middle;
+            padding: 15px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .filter-select {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            width: 100%;
+        }
+
+        /* Badge Styles */
+        .inventory-type {
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .type-own {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .type-borrowed {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .type-lent {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 15px;
+            }
+
+            .navbar-brand span {
+                display: none;
+            }
+
+            .search-section {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+
+            .results-card {
+                padding: 1rem;
+                margin: 0 1rem;
+            }
+
+            /* Table Responsive for Mobile */
+            .table-responsive thead {
+                display: none;
+            }
+
+            .table-responsive tbody tr {
+                display: block;
+                border: 1px solid #eee;
+                border-radius: 12px;
+                margin-bottom: 1rem;
+                padding: 1rem;
+                position: relative;
+            }
+
+            .table-responsive tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border: none;
+                padding: 0.5rem 0;
+                text-align: right;
+            }
+
+            .table-responsive tbody td::before {
+                content: attr(data-label);
+                font-weight: 700;
+                color: var(--text-muted);
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <img src="{{ url_for('custom_static_images', filename='logo.png') }}" alt="世磊實業">
+        </a>
+        <div class="navbar-user">
+            <span class="user-welcome">您好，{{ session['name'] if session['name'] else session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> 登出
+            </a>
+        </div>
+    </nav>
+
+    <div class="search-section">
+        <h4 class="section-title"><i class="fa-solid fa-boxes-stacked"></i> 庫存查詢系統</h4>
+        <p class="text-muted small mb-4">
+            <i class="fa-solid fa-circle-info me-1"></i> 系統自動過濾數量為 0 的記錄，僅顯示有庫存的產品。
+        </p>
+
+        <form id="searchForm" class="row g-3">
+            <div class="col-md-4">
+                <label for="product_name" class="form-label">產品名稱</label>
+                <input type="text" class="form-control" id="product_name" name="product_name" placeholder="輸入產品關鍵字">
+            </div>
+
+            <div class="col-md-4">
+                <label for="warehouse_partner" class="form-label">倉庫往來對象</label>
+                <input type="text" class="form-control" id="warehouse_partner" name="warehouse_partner"
+                    placeholder="輸入往來對象關鍵字">
+            </div>
+
+            <div class="col-md-4">
+                <label for="inventory_type" class="form-label">存貨屬性</label>
+                <select class="form-select" id="inventory_type" name="inventory_type">
+                    <option value="">全部</option>
+                    <option value="世磊">世磊（自有庫存）</option>
+                    <option value="寄倉">寄倉（借入庫存）</option>
+                    <option value="借出">借出（借出庫存）</option>
+                </select>
+            </div>
+
+            <div class="col-12 text-center mt-4">
+                <button type="button" class="btn btn-search me-2" onclick="searchInventory()">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> 查詢庫存
+                </button>
+                <button type="button" class="btn btn-clear" onclick="clearForm()">
+                    <i class="fa-solid fa-trash-can me-1"></i> 清除條件
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="results-section">
+        <div id="loading" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="mt-2 text-muted">查詢中，請稍候...</p>
+        </div>
+
+        <div id="results" class="results-card" style="display: none;">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>
+                                產品名稱
+                                <select class="filter-select" id="productNameFilter" onchange="filterTable()">
+                                    <option value="">全部產品</option>
+                                </select>
+                            </th>
+                            <th>
+                                倉庫名稱
+                                <select class="filter-select" id="warehouseNameFilter" onchange="filterTable()">
+                                    <option value="">全部倉庫</option>
+                                </select>
+                            </th>
+                            <th style="width: 120px;">存貨屬性</th>
+                            <th>往來對象名稱</th>
+                            <th style="width: 120px;" class="text-end">庫存數量</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="noResults" class="results-card text-center py-5" style="display: none;">
+            <i class="fa-solid fa-folder-open fa-3x text-muted mb-3"></i>
+            <p class="text-muted fw-bold">沒有找到符合條件的庫存資料</p>
+            <p class="small text-muted">請嘗試調整查詢條件</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function searchInventory() {
+            const form = document.getElementById('searchForm');
+            const formData = new FormData(form);
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('noResults').style.display = 'none';
+
+            fetch('/inventory_inquiry/search', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+                    if (data.success) {
+                        if (data.data.length > 0) {
+                            displayResults(data.data);
+                        } else {
+                            document.getElementById('noResults').style.display = 'block';
+                        }
+                    } else {
+                        alert('查詢失敗: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    console.error('查詢失敗:', error);
+                    alert('查詢失敗，請稍後再試');
+                });
+        }
+
+        function displayResults(data) {
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            const productNames = new Set();
+            const warehouseNames = new Set();
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                productNames.add(item.product_name);
+                warehouseNames.add(item.warehouse_name);
+
+                let typeClass = '';
+                if (item.inventory_type === '世磊') typeClass = 'type-own';
+                else if (item.inventory_type === '寄倉') typeClass = 'type-borrowed';
+                else if (item.inventory_type === '借出') typeClass = 'type-lent';
+
+                row.innerHTML = `
+                    <td data-label="產品名稱">${item.product_name}</td>
+                    <td data-label="倉庫名稱">${item.warehouse_name}</td>
+                    <td data-label="存貨屬性"><span class="inventory-type ${typeClass}">${item.inventory_type}</span></td>
+                    <td data-label="對象名稱">${item.warehouse_partner_name}</td>
+                    <td data-label="庫存數量" class="text-end fw-bold">${item.quantity.toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            populateFilterDropdowns(productNames, warehouseNames);
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function populateFilterDropdowns(productNames, warehouseNames) {
+            const productSelect = document.getElementById('productNameFilter');
+            productSelect.innerHTML = '<option value="">全部產品</option>';
+            Array.from(productNames).sort().forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                productSelect.appendChild(option);
+            });
+
+            const warehouseSelect = document.getElementById('warehouseNameFilter');
+            warehouseSelect.innerHTML = '<option value="">全部倉庫</option>';
+            Array.from(warehouseNames).sort().forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                warehouseSelect.appendChild(option);
+            });
+        }
+
+        function clearForm() {
+            document.getElementById('searchForm').reset();
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('productNameFilter').value = '';
+            document.getElementById('warehouseNameFilter').value = '';
+        }
+
+        function filterTable() {
+            const productNameFilter = document.getElementById('productNameFilter').value;
+            const warehouseNameFilter = document.getElementById('warehouseNameFilter').value;
+            const tbody = document.getElementById('resultsBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.getElementsByTagName('td');
+                const productName = cells[0].textContent;
+                const warehouseName = cells[1].textContent;
+
+                const productMatch = productNameFilter === '' || productName === productNameFilter;
+                const warehouseMatch = warehouseNameFilter === '' || warehouseName === warehouseNameFilter;
+
+                row.style.display = (productMatch && warehouseMatch) ? '' : 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('searchForm').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchInventory();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>輸入框測試</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>🧪 輸入框功能測試</h2>
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            這個頁面用來測試輸入框是否正常工作
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <h4>📋 表格中的輸入框測試</h4>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>欄位名稱</th>
+                            <th>輸入框</th>
+                            <th>狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-light">
+                            <td>單據編號</td>
+                            <td>
+                                <input type="text" id="test1" class="form-control form-control-sm" placeholder="請輸入單據編號">
+                            </td>
+                            <td id="status1">等待輸入...</td>
+                        </tr>
+                        <tr class="bg-light">
+                            <td>客戶名稱</td>
+                            <td>
+                                <input type="text" id="test2" class="form-control form-control-sm" placeholder="請輸入客戶名稱">
+                            </td>
+                            <td id="status2">等待輸入...</td>
+                        </tr>
+                        <tr class="bg-light">
+                            <td>聯絡電話</td>
+                            <td>
+                                <input type="text" id="test3" class="form-control form-control-sm" placeholder="請輸入聯絡電話">
+                            </td>
+                            <td id="status3">等待輸入...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h4>📝 獨立輸入框測試</h4>
+                <div class="mb-3">
+                    <label for="standalone" class="form-label">獨立輸入框</label>
+                    <input type="text" id="standalone" class="form-control" placeholder="這是一個獨立的輸入框">
+                    <div id="standaloneStatus" class="form-text">等待輸入...</div>
+                </div>
+                
+                <button onclick="testAllInputs()" class="btn btn-primary">🔍 測試所有輸入框</button>
+                <button onclick="clearAllInputs()" class="btn btn-secondary">🗑️ 清除所有輸入</button>
+            </div>
+            
+            <div class="col-md-4">
+                <h5>📊 測試日誌</h5>
+                <div id="log" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function testAllInputs() {
+            log('🚀 開始測試所有輸入框');
+            
+            const inputs = [
+                { id: 'test1', name: '單據編號' },
+                { id: 'test2', name: '客戶名稱' },
+                { id: 'test3', name: '聯絡電話' },
+                { id: 'standalone', name: '獨立輸入框' }
+            ];
+            
+            inputs.forEach(input => {
+                const element = document.getElementById(input.id);
+                if (element) {
+                    log(`✅ ${input.name} 輸入框存在`);
+                    log(`   - 類型: ${element.type}`);
+                    log(`   - 可編輯: ${!element.readOnly && !element.disabled}`);
+                    log(`   - 可見: ${element.offsetWidth > 0 && element.offsetHeight > 0}`);
+                    
+                    // 嘗試設定值
+                    element.value = `測試${input.name}`;
+                    log(`   - 設定值後: "${element.value}"`);
+                } else {
+                    log(`❌ ${input.name} 輸入框不存在`);
+                }
+            });
+        }
+        
+        function clearAllInputs() {
+            const inputs = ['test1', 'test2', 'test3', 'standalone'];
+            inputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.value = '';
+                    document.getElementById(id.replace('test', 'status') || 'standaloneStatus').textContent = '等待輸入...';
+                }
+            });
+            log('🗑️ 已清除所有輸入框');
+        }
+        
+        // 綁定事件
+        window.onload = function() {
+            log('📱 頁面載入完成');
+            
+            // 為每個輸入框綁定事件
+            const inputs = [
+                { id: 'test1', statusId: 'status1' },
+                { id: 'test2', statusId: 'status2' },
+                { id: 'test3', statusId: 'status3' },
+                { id: 'standalone', statusId: 'standaloneStatus' }
+            ];
+            
+            inputs.forEach(input => {
+                const element = document.getElementById(input.id);
+                const statusElement = document.getElementById(input.statusId);
+                
+                if (element) {
+                    element.addEventListener('focus', () => {
+                        log(`${input.id} 獲得焦點`);
+                        if (statusElement) statusElement.textContent = '已獲得焦點';
+                    });
+                    
+                    element.addEventListener('input', (e) => {
+                        log(`${input.id} 輸入: "${e.target.value}"`);
+                        if (statusElement) statusElement.textContent = `輸入: "${e.target.value}"`;
+                    });
+                    
+                    element.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            log(`${input.id} 按下 ENTER 鍵`);
+                            if (statusElement) statusElement.textContent = `按下 ENTER: "${e.target.value}"`;
+                        }
+                    });
+                    
+                    log(`✅ ${input.id} 事件已綁定`);
+                }
+            });
+            
+            log('🔗 所有事件綁定完成');
+        };
+    </script>
+</body>
+</html>

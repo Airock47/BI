@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>無權限</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
+    .container { max-width: 640px; margin: 40px auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .title { font-size: 20px; margin-bottom: 12px; }
+    a { color:#007bff; text-decoration:none; }
+  </style>
+  </head>
+<body>
+  <div class="container">
+    <div class="title">權限不足</div>
+    <div>{{ message or '您沒有使用此功能的權限。' }}</div>
+    <div style="margin-top:16px"><a href="{{ url_for('dashboard') }}">回首頁</a></div>
+  </div>
+</body>
+</html>
+

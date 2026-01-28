@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加分審核（總經理）</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
+    .container { max-width: 1000px; margin: 0 auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid #eee; padding:8px; text-align:left; font-size:14px; }
+    .tabs { display:flex; gap:8px; margin-bottom:12px; }
+    .tab { padding:8px 12px; border-radius:6px; background:#eee; cursor:pointer; user-select:none; }
+    .tab.active { background:#3f51b5; color:#fff; }
+    .pane { display:none; }
+    .pane.active { display:block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>加分申請清單</h2>
+    <div class="tabs">
+      <div class="tab active" data-target="#pending">待審核</div>
+      <div class="tab" data-target="#reviewed">已審核</div>
+    </div>
+
+    <div id="pending" class="pane active">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>申請人</th><th>對象</th><th>分數</th><th>狀態</th><th>申請時間</th><th>審核</th></tr>
+        </thead>
+        <tbody>
+          {% for r in pending_requests %}
+          <tr>
+            <td>{{ r.id }}</td>
+            <td>{{ r.applicant_name or r.applicant_username }}</td>
+            <td>{{ r.target_name or r.target_username }}</td>
+            <td>{{ r.score }}</td>
+            <td>{{ r.status }}</td>
+            <td>{{ r.apply_date }}</td>
+            <td>
+              <form method="post" action="/bonus/review/{{ r.id }}/approve" style="display:block; margin-bottom:6px">
+                <textarea name="review_reason" rows="2" placeholder="核准原因（可選）" style="width: 260px"></textarea>
+                <div><button type="submit">✅ 核准</button></div>
+              </form>
+              <form method="post" action="/bonus/review/{{ r.id }}/reject" style="display:block">
+                <textarea name="review_reason" rows="2" placeholder="駁回原因（可選）" style="width: 260px"></textarea>
+                <div><button type="submit">❌ 駁回</button></div>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div id="reviewed" class="pane">
+      <table>
+        <thead>
+          <tr><th>ID</th><th>申請人</th><th>對象</th><th>分數</th><th>狀態</th><th>申請時間</th><th>審核結果</th></tr>
+        </thead>
+        <tbody>
+          {% for r in reviewed_requests %}
+          <tr>
+            <td>{{ r.id }}</td>
+            <td>{{ r.applicant_name or r.applicant_username }}</td>
+            <td>{{ r.target_name or r.target_username }}</td>
+            <td>{{ r.score }}</td>
+            <td>{{ r.status }}</td>
+            <td>{{ r.apply_date }}</td>
+            <td>{{ r.review_date }}<br><span style="color:#888">{{ r.review_reason }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const panes = document.querySelectorAll('.pane');
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      panes.forEach(p => p.classList.remove('active'));
+      t.classList.add('active');
+      const target = document.querySelector(t.dataset.target);
+      if (target) target.classList.add('active');
+    }));
+  </script>
+</body>
+</html>
+

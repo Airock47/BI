@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>銷售資料查詢</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .search-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-link {
+            color: #333;
+        }
+        .nav-link:hover {
+            color: #007bff;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">首頁</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">儀表板</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sales">銷售</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/sales_query">銷售查詢</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">登出</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="search-container">
+            <h2 class="text-center mb-4">銷售資料查詢</h2>
+            <div class="input-group mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="請輸入送貨地址、客戶名稱或備註關鍵字">
+                <button class="btn btn-primary" type="button" onclick="searchSales()">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function searchSales() {
+            const keyword = document.getElementById('searchInput').value;
+            console.log('開始搜尋，關鍵字：', keyword);
+            
+            // 在新分頁中打開搜尋結果
+            const searchWindow = window.open('', '_blank');
+            searchWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="zh-TW">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>銷售資料查詢結果</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <style>
+                        body { padding: 20px; }
+                        .table th { background-color: #f1f1f1; }
+                        .table-hover tbody tr:hover { background-color: #f5f5f5; cursor: pointer; }
+                        .details-row { background-color: #f8f9fa; }
+                        .details-row td { padding: 0 !important; }
+                        .details-content { padding: 15px; background-color: #fff; border: 1px solid #dee2e6; border-radius: 4px; margin: 10px; }
+                        .expanded { background-color: #e9ecef; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h2 class="mb-4">銷售資料查詢結果</h2>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>單據編號</th>
+                                        <th>發貨日期</th>
+                                        <th>客戶名稱</th>
+                                        <th>項目名稱</th>
+                                        <th>業務人員名稱</th>
+                                        <th>送貨地址</th>
+                                        <th>備註</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            // 使用更安全的方式載入 Bootstrap
+            const bootstrapScript = searchWindow.document.createElement('script');
+            bootstrapScript.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js';
+            bootstrapScript.async = true;
+            searchWindow.document.body.appendChild(bootstrapScript);
+            
+            // 在新分頁中執行搜尋
+            fetch('/search_sales', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `keyword=${encodeURIComponent(keyword)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tbody = searchWindow.document.getElementById('salesTableBody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.sales.length === 0) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = '<td colspan="7" class="text-center">沒有找到符合的資料</td>';
+                        tbody.appendChild(tr);
+                        return;
+                    }
+                    
+                    data.sales.forEach(sale => {
+                        // 主資料列
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${sale.單據編號 || ''}</td>
+                            <td>${sale.發貨日期 || ''}</td>
+                            <td>${sale.客戶名稱 || ''}</td>
+                            <td>${sale.項目名稱 || ''}</td>
+                            <td>${sale.業務人員名稱 || ''}</td>
+                            <td>${sale.送貨地址 || ''}</td>
+                            <td>${sale.備註 || ''}</td>
+                        `;
+                        
+                        // 明細資料列
+                        const detailsTr = document.createElement('tr');
+                        detailsTr.className = 'details-row';
+                        detailsTr.style.display = 'none';
+                        detailsTr.innerHTML = `
+                            <td colspan="7">
+                                <div class="details-content">
+                                    <h5>出貨單明細</h5>
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>產品名稱</th>
+                                                <th>交易數量</th>
+                                                <th>倉庫確認數量</th>
+                                                <th>交易價</th>
+                                                <th>含稅金額</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="details-body">
+                                            <tr><td colspan="5" class="text-center">載入中...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        `;
+                        
+                        // 點擊事件
+                        tr.onclick = () => {
+                            const isExpanded = detailsTr.style.display !== 'none';
+                            if (!isExpanded) {
+                                // 載入明細資料
+                                console.log('開始載入明細資料，單據編號：', sale.單據編號);
+                                fetch(`/get_sales_details/${sale.單據編號}`)
+                                .then(response => response.json())
+                                .then(detailsData => {
+                                    console.log('收到明細資料：', detailsData);
+                                    if (detailsData.success) {
+                                        const detailsBody = detailsTr.querySelector('.details-body');
+                                        detailsBody.innerHTML = '';
+                                        
+                                        if (detailsData.details.length === 0) {
+                                            detailsBody.innerHTML = '<tr><td colspan="5" class="text-center">沒有明細資料</td></tr>';
+                                            return;
+                                        }
+                                        
+                                        detailsData.details.forEach(detail => {
+                                            const detailTr = document.createElement('tr');
+                                            detailTr.innerHTML = `
+                                                <td>${detail.產品名稱 || ''}</td>
+                                                <td>${detail.交易數量 || ''}</td>
+                                                <td>${detail.倉庫確認數量 || ''}</td>
+                                                <td>${detail.交易價 || ''}</td>
+                                                <td>${detail.含稅金額 || ''}</td>
+                                            `;
+                                            detailsBody.appendChild(detailTr);
+                                        });
+                                    } else {
+                                        console.error('載入明細資料失敗：', detailsData.message);
+                                        detailsTr.querySelector('.details-body').innerHTML = 
+                                            '<tr><td colspan="5" class="text-center text-danger">載入明細資料失敗：' + detailsData.message + '</td></tr>';
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('獲取明細時發生錯誤：', error);
+                                    detailsTr.querySelector('.details-body').innerHTML = 
+                                        '<tr><td colspan="5" class="text-center text-danger">載入明細資料時發生錯誤</td></tr>';
+                                });
+                            }
+                            
+                            // 切換展開/收合狀態
+                            detailsTr.style.display = isExpanded ? 'none' : 'table-row';
+                            tr.classList.toggle('expanded', !isExpanded);
+                        };
+                        
+                        tbody.appendChild(tr);
+                        tbody.appendChild(detailsTr);
+                    });
+                } else {
+                    searchWindow.document.getElementById('salesTableBody').innerHTML = 
+                        '<tr><td colspan="7" class="text-center text-danger">搜尋失敗：' + (data.message || '未知錯誤') + '</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('搜尋時發生錯誤：', error);
+                searchWindow.document.getElementById('salesTableBody').innerHTML = 
+                    '<tr><td colspan="7" class="text-center text-danger">搜尋時發生錯誤，請查看控制台了解詳情</td></tr>';
+            });
+        }
+
+        // 按下 Enter 鍵時觸發搜尋
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchSales();
+            }
+        });
+    </script>
+</body>
+</html> 

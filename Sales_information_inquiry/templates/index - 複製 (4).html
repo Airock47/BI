@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>出貨維修資料查詢系統 v2.0</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #34495e;
+      --accent-color: #3498db;
+      --light-bg: #f8f9fa;
+      --border-color: #e9ecef;
+    }
+
+    body {
+      background-color: var(--light-bg);
+      color: var(--primary-color);
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      padding: 2rem 0;
+      text-align: center;
+    }
+
+    .search-form {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      margin: 2rem auto;
+      max-width: 800px;
+    }
+
+    .search-input {
+      padding: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .search-btn {
+      background-color: var(--accent-color);
+      color: white;
+    }
+
+    .result-container,
+    .detail-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .table td {
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .客戶名稱欄,
+    .地址欄,
+    .備註欄 {
+      white-space: normal !important;
+      word-break: break-word;
+    }
+
+    .備註欄 {
+      max-width: 300px;
+    }
+
+    .地址欄 {
+      max-width: 200px;
+    }
+
+    .客戶名稱欄 {
+      max-width: 150px;
+    }
+
+    .total-row {
+      background-color: var(--primary-color);
+      color: white;
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .multiline-finish {
+      display: inline-block;
+      max-width: 100%;
+      white-space: pre-line;
+      word-break: break-all;
+      line-break: anywhere;
+    }
+
+    /* 表格樣式優化 */
+    .result-container {
+      margin-top: 2rem;
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .table {
+      word-break: break-word;
+      table-layout: fixed;
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    .table td,
+    .table th {
+      word-wrap: break-word !important;
+      white-space: normal !important;
+      vertical-align: top;
+      padding: 8px;
+      overflow-wrap: break-word;
+    }
+
+    /* 確保容器使用全寬度 */
+    .container-fluid {
+      max-width: 100%;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    /* 手機響應式設計 */
+    @media (max-width: 768px) {
+      .page-header h1 {
+        font-size: 1.5rem;
+      }
+
+      .search-form {
+        padding: 1rem;
+        margin: 1rem auto;
+      }
+
+      .search-input {
+        padding: 0.75rem;
+        font-size: 1rem;
+      }
+
+      /* 手機版卡片式顯示 */
+      .mobile-card-view {
+        display: block !important;
+      }
+
+      .desktop-table-view {
+        display: none !important;
+      }
+
+      .result-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+      }
+
+      .card-type {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+
+      .card-doc-no {
+        font-size: 0.9rem;
+        color: #666;
+        font-weight: 500;
+      }
+
+      .card-body {
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
+      .card-row {
+        display: flex;
+        margin-bottom: 0.5rem;
+        align-items: flex-start;
+      }
+
+      .card-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 70px;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+      }
+
+      .card-value {
+        color: #212529;
+        word-break: break-word;
+        flex: 1;
+      }
+
+      .card-actions {
+        margin-top: 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #eee;
+        text-align: center;
+      }
+
+      .card-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+      }
+
+      /* 手機版篩選器 */
+      .mobile-filters {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .filter-group {
+        margin-bottom: 0.75rem;
+      }
+
+      .filter-group label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.25rem;
+        display: block;
+      }
+
+      .filter-group input,
+      .filter-group select {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+      }
+
+      .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+
+      .filter-actions .btn {
+        flex: 1;
+        font-size: 0.9rem;
+        padding: 0.5rem;
+      }
+
+      /* 手機版明細顯示 */
+      .mobile-detail-container {
+        animation: slideDown 0.3s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          max-height: 0;
+          overflow: hidden;
+        }
+
+        to {
+          opacity: 1;
+          max-height: 500px;
+          overflow: visible;
+        }
+      }
+
+      .mobile-detail-container h5 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+        color: #495057;
+      }
+
+      .mobile-detail-container .table {
+        background-color: white;
+        border-radius: 4px;
+      }
+
+      .mobile-detail-container .table th {
+        background-color: #e9ecef;
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+      }
+
+      .mobile-detail-container .table td {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+        word-break: break-word;
+      }
+    }
+
+    /* 桌面版保持表格顯示 */
+    @media (min-width: 769px) {
+      .mobile-card-view {
+        display: none !important;
+      }
+
+      .desktop-table-view {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-header">
+    <h1>出貨維修客戶資料查詢系統</h1>
+  </div>
+
+  <div class="container-fluid px-2">
+    <div class="search-form">
+      <form id="searchForm">
+        <div class="input-group">
+          <input type="text" id="searchInput" class="form-control search-input"
+            placeholder="請輸入關鍵字（客戶名稱、地址、電話、客戶代碼、聯絡人）" required />
+          <button type="submit" class="btn search-btn">
+            <i class="bi bi-search me-2"></i>搜尋
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div id="results" class="result-container hidden">
+      <div id="loading" class="text-center py-5 hidden">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">載入中...</span>
+        </div>
+      </div>
+      <div id="error" class="alert alert-danger hidden"></div>
+
+      <!-- 結果統計 -->
+      <div id="resultSummary" class="mb-2 hidden">
+        <small class="text-muted">
+          <span id="filterStatus">顯示全部結果</span> |
+          <span id="resultCount">共 0 筆</span>
+        </small>
+      </div>
+
+      <!-- 手機版篩選器 -->
+      <div id="mobileFilters" class="mobile-filters d-block d-md-none hidden">
+        <div class="row">
+          <div class="col-6">
+            <div class="filter-group">
+              <label>類型</label>
+              <select id="mobileTypeFilter" class="form-select">
+                <option value="">全部</option>
+                <option value="customer">客戶資料</option>
+                <option value="sales">銷售</option>
+                <option value="repair">維修</option>
+                <option value="custody">寄倉出貨</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="filter-group">
+              <label>客戶名稱</label>
+              <input type="text" id="mobileCustomerNameFilter" class="form-control" placeholder="客戶名稱">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-6">
+            <div class="filter-group">
+              <label>起始日期</label>
+              <input type="date" id="mobileDateFromFilter" class="form-control">
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="filter-group">
+              <label>結束日期</label>
+              <input type="date" id="mobileDateToFilter" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button type="button" id="mobileClearFilters" class="btn btn-outline-secondary">
+            <i class="bi bi-funnel"></i> 清除篩選
+          </button>
+          <button type="button" id="mobileResetFilters" class="btn btn-outline-danger">
+            <i class="bi bi-x-circle"></i> 重置
+          </button>
+        </div>
+      </div>
+
+      <!-- 桌面版表格顯示 -->
+      <div id="desktopResults" class="desktop-table-view">
+        <div id="resultsList"></div>
+      </div>
+
+      <!-- 手機版卡片顯示 -->
+      <div id="mobileResults" class="mobile-card-view">
+        <div id="mobileResultsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allResults = []; // 儲存所有搜尋結果
+    let filteredResults = []; // 儲存篩選後的結果
+
+    // 監聽窗口大小變化，確保響應式功能正常
+    window.addEventListener('resize', () => {
+      // 如果有搜尋結果，重新顯示以適應新的螢幕大小
+      if (filteredResults.length > 0) {
+        displayResults(filteredResults);
+      }
+    });
+
+    const searchForm = document.getElementById("searchForm");
+    const searchInput = document.getElementById("searchInput");
+    let notificationPermissionRequest;
+
+    function ensureNotificationPermission() {
+      if (!("Notification" in window)) {
+        return Promise.resolve(false);
+      }
+      if (Notification.permission === "granted") {
+        return Promise.resolve(true);
+      }
+      if (Notification.permission === "denied") {
+        return Promise.resolve(false);
+      }
+      if (!notificationPermissionRequest) {
+        notificationPermissionRequest = Notification.requestPermission().then((result) => result === "granted");
+      }
+      return notificationPermissionRequest;
+    }
+
+    function showCtiNotification(payload) {
+      ensureNotificationPermission().then((granted) => {
+        if (!granted) {
+          console.warn("CTI notification skipped - permission not granted");
+          return;
+        }
+        const phone = payload.phone || "";
+        const postal = payload.postalCode || "";
+        const custId = payload.customerId || "";
+        const lines = [
+          phone ? `電話: ${phone}` : null,
+          postal ? `郵遞區號: ${postal}` : null,
+          custId ? `客戶ID: ${custId}` : null,
+        ].filter(Boolean);
+        const body = lines.length > 0 ? lines.join("\n") : "有新的來電通知";
+        try {
+          const notification = new Notification("來電通知", {
+            body,
+            tag: payload.confID || payload.key || "cti-pop",
+            data: payload,
+            renotify: true,
+          });
+          notification.onclick = () => {
+            window.focus();
+          };
+        } catch (err) {
+          console.warn("CTI notification failed", err);
+        }
+      });
+    }
+
+    ensureNotificationPermission();
+
+    function toLocalPhone(phoneE164) {
+      if (!phoneE164) return "";
+      if (phoneE164.startsWith("+886")) {
+        return "0" + phoneE164.slice(4);
+      }
+      return phoneE164;
+    }
+
+    async function performSearch(keyword) {
+      if (!searchForm || !searchInput) {
+        console.warn("search form elements missing");
+        return;
+      }
+
+      const results = document.getElementById("results");
+      const loading = document.getElementById("loading");
+      const error = document.getElementById("error");
+      const resultsList = document.getElementById("resultsList");
+
+      if (!results || !loading || !error || !resultsList) {
+        console.warn("search result containers missing");
+        return;
+      }
+
+      results.classList.remove("hidden");
+      loading.classList.remove("hidden");
+      error.classList.add("hidden");
+      resultsList.innerHTML = "";
+
+      try {
+        const res = await fetch(`/sales_info/search?keyword=${encodeURIComponent(keyword)}`);
+        const data = await res.json();
+
+        if (data.error) {
+          error.textContent = data.error;
+          error.classList.remove("hidden");
+          return;
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+          resultsList.innerHTML = "<div class=\"alert alert-info\">沒有符合結果</div>";
+          return;
+        }
+
+        allResults = data;
+        filteredResults = [...data];
+
+        const resultSummary = document.getElementById("resultSummary");
+        if (resultSummary) {
+          resultSummary.classList.remove("hidden");
+        }
+
+        const mobileFilters = document.getElementById("mobileFilters");
+        if (mobileFilters) {
+          mobileFilters.classList.remove("hidden");
+        }
+
+        displayResults(filteredResults);
+      } catch (err) {
+        error.textContent = "系統錯誤，請稍後再試";
+        error.classList.remove("hidden");
+      } finally {
+        loading.classList.add("hidden");
+      }
+    }
+
+    if (searchForm) {
+      searchForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const keyword = searchInput.value.trim();
+        if (!keyword) return;
+        await performSearch(keyword);
+      });
+    }
+
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialKeyword = (initialParams.get("phone") || initialParams.get("keyword") || "").trim();
+    if (initialKeyword) {
+      searchInput.value = initialKeyword;
+      performSearch(initialKeyword);
+    }
+
+    (function initCtiSse() {
+      try {
+        const es = new EventSource("/sse/notifications");
+        es.addEventListener("ping", function () { /* keepalive */ });
+        es.onmessage = function (ev) {
+          try {
+            const msg = JSON.parse(ev.data || "{}");
+            if (!msg || msg.type !== "CTI_POP") return;
+            const displayPhone = msg.phone || "";
+            const postal = msg.postalCode || "";
+            const custId = msg.customerId || "";
+            console.log("[CTI]", msg);
+            showCtiNotification(msg);
+            const autoKeyword = toLocalPhone(displayPhone) || displayPhone;
+            if (autoKeyword) {
+              searchInput.value = autoKeyword;
+              performSearch(autoKeyword);
+            }
+          } catch (err) {
+            console.warn("CTI parse fail", err);
+          }
+        };
+        es.onerror = function () { /* expected on network errors */ };
+      } catch (err) {
+        console.warn("SSE init error", err);
+      }
+    })();
+    // 顯示結果的函數
+    function displayResults(data) {
+      try {
+        const resultsList = document.getElementById('resultsList');
+        const resultCount = document.getElementById('resultCount');
+
+        if (!resultsList) {
+          console.error('找不到 resultsList 元素');
+          return;
+        }
+
+        if (data.length === 0) {
+          resultsList.innerHTML = '<div class="alert alert-info">沒有符合篩選條件的資料</div>';
+          const mobileResultsList = document.getElementById('mobileResultsList');
+          if (mobileResultsList) {
+            mobileResultsList.innerHTML = '<div class="alert alert-info">沒有符合篩選條件的資料</div>';
+          }
+          if (resultCount) resultCount.textContent = '共 0 筆';
+          return;
+        }
+
+        // 排序資料 (由近到遠，即日期由新到舊)
+        data.sort((a, b) => {
+          const parseDate = (rawDate) => {
+            if (!rawDate) return new Date('1900-01-01');
+            let dateStr = rawDate.toString().trim();
+            dateStr = dateStr.replace(/\(.+?\)/g, '');
+
+            // 民國年格式 (例如: 113/12/25)
+            if (/^\d{2,3}\/\d{1,2}\/\d{1,2}/.test(dateStr)) {
+              const parts = dateStr.split('/');
+              const year = parseInt(parts[0], 10) + 1911;
+              const month = parts[1].padStart(2, '0');
+              const day = parts[2].split(' ')[0].padStart(2, '0'); // 處理可能包含時間的情況
+              return new Date(`${year}-${month}-${day}`);
+            }
+
+            // 中文年月日格式 (例如: 2024年12月25日)
+            if (/\d{4}年\d{1,2}月\d{1,2}日/.test(dateStr)) {
+              const year = dateStr.match(/(\d{4})年/)[1];
+              const month = dateStr.match(/年(\d{1,2})月/)[1].padStart(2, '0');
+              const day = dateStr.match(/月(\d{1,2})日/)[1].padStart(2, '0');
+              return new Date(`${year}-${month}-${day}`);
+            }
+
+            // ISO格式或其他標準格式
+            dateStr = dateStr.replace(/\//g, '-').split(' ')[0]; // 只取日期部分
+            const parsed = new Date(dateStr);
+            return isNaN(parsed) ? new Date('1900-01-01') : parsed;
+          };
+
+          const dateA = parseDate(a.data.發貨日期 || a.data.單據日期 || a.data.出勤開始時間 || '');
+          const dateB = parseDate(b.data.發貨日期 || b.data.單據日期 || b.data.出勤開始時間 || '');
+
+          // 由近到遠排序 (新日期在前)
+          return dateB - dateA;
+        });
+
+        // 建立表格
+        const table = document.createElement('table');
+        table.className = 'table table-bordered table-striped mt-3';
+
+        // 先建立表頭
+        const thead = document.createElement('thead');
+
+        // 標題行
+        const headerRow = document.createElement('tr');
+        headerRow.innerHTML = `
+          <th style="width: 8%;">類型</th>
+          <th style="width: 10%;">單據編號</th>
+          <th style="width: 8%;">日期</th>
+          <th style="width: 8%;">客戶代碼</th>
+          <th style="width: 12%;">客戶名稱</th>
+          <th style="width: 10%;">業務/維修人員</th>
+          <th style="width: 10%;">聯絡電話</th>
+          <th style="width: 18%;">地址</th>
+          <th style="width: 16%;">備註/維修產品</th>
+          <th style="width: 8%;">操作</th>
+        `;
+
+        // 篩選行
+        const filterRow = document.createElement('tr');
+        filterRow.className = 'bg-light';
+        filterRow.innerHTML = `
+          <td style="width: 8%;">
+            <select id="typeFilter" class="form-select form-select-sm">
+              <option value="">全部</option>
+              <option value="customer">客戶資料</option>
+              <option value="sales">銷售</option>
+              <option value="repair">維修</option>
+              <option value="custody">寄倉出貨</option>
+            </select>
+          </td>
+          <td style="width: 10%;">
+            <input type="text" id="docNoFilter" class="form-control form-control-sm" placeholder="單據編號" title="輸入後按ENTER篩選">
+          </td>
+          <td style="width: 8%;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <input type="date" id="dateFromFilter" class="form-control form-control-sm" style="font-size: 9px; padding: 2px;" title="起始日期 (設定完兩個日期後自動篩選，或按ENTER立即篩選)" placeholder="起始日期">
+              <input type="date" id="dateToFilter" class="form-control form-control-sm" style="font-size: 9px; padding: 2px;" title="結束日期 (設定完兩個日期後自動篩選，或按ENTER立即篩選)" placeholder="結束日期">
+            </div>
+          </td>
+          <td style="width: 8%;">
+            <input type="text" id="customerCodeFilter" class="form-control form-control-sm" placeholder="客戶代碼" title="輸入後按ENTER篩選">
+          </td>
+          <td style="width: 12%;">
+            <input type="text" id="customerNameFilter" class="form-control form-control-sm" placeholder="客戶名稱" title="輸入後按ENTER篩選">
+          </td>
+          <td style="width: 10%;">
+            <input type="text" id="staffFilter" class="form-control form-control-sm" placeholder="業務人員" title="輸入後按ENTER篩選">
+          </td>
+          <td style="width: 10%;">
+            <input type="text" id="phoneFilter" class="form-control form-control-sm" placeholder="電話" title="輸入後按ENTER篩選">
+          </td>
+          <td style="width: 18%;">
+            <input type="text" id="addressFilter" class="form-control form-control-sm" placeholder="地址關鍵字" title="輸入後按ENTER篩選" style="width: 100%;">
+          </td>
+          <td style="width: 16%;">
+            <input type="text" id="remarksFilter" class="form-control form-control-sm" placeholder="備註關鍵字" title="輸入後按ENTER篩選" style="width: 100%;">
+          </td>
+          <td style="width: 8%;">
+            <div style="display: flex; gap: 2px;">
+              <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm" title="清除篩選結果(保留輸入條件)" style="font-size: 10px;">
+                <i class="bi bi-funnel"></i>
+              </button>
+              <button type="button" id="resetFilters" class="btn btn-outline-danger btn-sm" title="完全清除所有篩選條件" style="font-size: 10px;">
+                <i class="bi bi-x-circle"></i>
+              </button>
+            </div>
+          </td>
+        `;
+
+        thead.appendChild(headerRow);
+        thead.appendChild(filterRow);
+        table.appendChild(thead);
+
+        // 建立表格主體
+        const tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+
+        // 填入資料行
+        data.forEach(item => {
+          const d = item.data;
+          const row = document.createElement('tr');
+          console.log('🔍 處理資料項目：', item.type, '單據編號：', d.單據編號);
+          if (item.type === 'customer') {
+            row.innerHTML = `
+            <td><span class="badge bg-info">客戶資料</span></td>
+            <td style="word-wrap: break-word;">-</td>
+            <td style="word-wrap: break-word;">-</td>
+            <td style="word-wrap: break-word;">
+              ${d.客戶代碼 ? `<a href="javascript:void(0)" onclick="showServiceCard('${d.客戶代碼}')" class="text-primary text-decoration-underline">${d.客戶代碼}</a>` : ''}
+            </td>
+          <td style="word-wrap: break-word;">${d.客戶名稱 || ''}</td>
+            <td style="word-wrap: break-word;">${d.業務人員名稱 || ''}</td>
+            <td style="word-wrap: break-word;">${d.聯絡電話 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">${d.聯絡地址 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">聯絡人：${d.聯絡人 || ''}</td>
+            <td>
+              ${d.客戶代碼 ? `<button class="btn btn-info btn-sm" onclick="showCustomerDetails('${d.客戶代碼}')"><i class='bi bi-person-lines-fill'></i> 客戶詳情</button>` : ''}
+            </td>
+          `;
+          } else if (item.type === 'custody') {
+            row.innerHTML = `
+            <td><span class="badge bg-warning text-dark">寄倉出貨</span></td>
+            <td>${d.單據編號 || ''}</td>
+            <td>${d.單據日期 || ''}</td>
+            <td>
+              ${d.客戶代碼 ? `<a href="javascript:void(0)" onclick="showServiceCard('${d.客戶代碼}')" class="text-primary text-decoration-underline">${d.客戶代碼}</a>` : ''}
+            </td>
+          <td style="word-wrap: break-word;">${d.客戶名稱 || ''}</td>
+            <td style="word-wrap: break-word;">${d.業務人員名稱 || ''}</td>
+            <td style="word-wrap: break-word;">${d.聯絡電話 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">${d.送貨地址 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">${d.備註 || ''}</td>
+            <td>
+              ${d.單據編號 ? `<button class="btn btn-warning btn-sm" onclick="showCustodyDetails('${d.單據編號}')"><i class='bi bi-list-ul'></i> 查看明細</button>` : ''}
+            </td>
+          `;
+          } else if (item.type === 'repair') {
+            row.innerHTML = `
+            <td><span class="badge bg-success">維修</span></td>
+            <td>${d.單據編號 || ''}</td>
+            <td>${d.出勤開始時間 || d.發貨日期 || ''}</td>
+            <td>
+              ${d.客戶代碼 ? `<a href="javascript:void(0)" onclick="showServiceCard('${d.客戶代碼}')" class="text-primary text-decoration-underline">${d.客戶代碼}</a>` : ''}
+            </td>
+          <td style="word-wrap: break-word;">${d.客戶名稱 || ''}</td>
+            <td style="word-wrap: break-word;">${d.維修人員 || d.服務人員 || ''}</td>
+            <td style="word-wrap: break-word;">${d.聯絡電話 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">${d.服務地址 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">${d.產品名稱 || ''}</td>
+            <td>
+              ${d.單據編號 ? `<button class="btn btn-info btn-sm" onclick="showRepairDetails('${d.單據編號}')"><i class='bi bi-list-ul'></i> 查看明細</button>` : ''}
+            </td>
+          `;
+          } else if (item.type === 'sales') {
+            row.innerHTML = `
+            <td><span class="badge bg-primary">銷售</span></td>
+            <td>${d.單據編號 || ''}</td>
+            <td>${d.單據日期 || d.發貨日期 || ''}</td>
+            <td>
+              ${d.客戶代碼 ? `<a href="javascript:void(0)" onclick="showServiceCard('${d.客戶代碼}')" class="text-primary text-decoration-underline">${d.客戶代碼}</a>` : ''}
+            </td>
+          <td style="word-wrap: break-word;">${d.客戶名稱 || ''}</td>
+            <td style="word-wrap: break-word;">${d.業務人員名稱 || ''}</td>
+            <td style="word-wrap: break-word;">${d.聯絡電話 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">${d.送貨地址 || ''}</td>
+            <td style="word-wrap: break-word; white-space: normal;">${d.備註 || ''}</td>
+            <td>
+              ${d.單據編號 ? `<button class="btn btn-info btn-sm" onclick="showDetails('${d.單據編號}')"><i class='bi bi-list-ul'></i> 查看明細</button>` : ''}
+            </td>
+          `;
+          } else {
+            // 未知類型的默認處理
+            console.warn('未知的資料類型：', item.type);
+            row.innerHTML = `
+            <td><span class="badge bg-secondary">未知</span></td>
+            <td colspan="8">${JSON.stringify(d)}</td>
+            <td></td>
+          `;
+          }
+          tbody.appendChild(row);
+        });
+
+        // 加入使用說明
+        const helpText = document.createElement('div');
+        helpText.className = 'alert alert-info alert-sm mb-2';
+        helpText.innerHTML = `
+          <small>
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>篩選說明：</strong>
+            <strong>類型</strong>選擇後立即篩選；
+            <strong>日期</strong>需設定完起訖兩個日期後自動篩選（或按<kbd>Enter</kbd>立即篩選）；
+            <strong>文字欄位</strong>輸入後按 <kbd>Enter</kbd> 鍵篩選。
+            <i class="bi bi-funnel"></i> 清除篩選結果但保留條件，
+            <i class="bi bi-x-circle text-danger"></i> 完全清除所有條件
+          </small>
+        `;
+
+        resultsList.innerHTML = '';
+        resultsList.appendChild(helpText);
+        resultsList.appendChild(table);
+        if (resultCount) resultCount.textContent = `共 ${data.length} 筆`;
+
+        // 綁定篩選事件
+        bindFilterEvents();
+
+        // 生成手機版卡片顯示
+        generateMobileCards(data);
+
+        // 除錯：檢查篩選器是否正確建立
+        console.log('篩選器檢查:');
+        const filterIds = ['typeFilter', 'docNoFilter', 'dateFromFilter', 'dateToFilter',
+          'customerCodeFilter', 'customerNameFilter', 'staffFilter',
+          'phoneFilter', 'addressFilter', 'remarksFilter'];
+        filterIds.forEach(id => {
+          const element = document.getElementById(id);
+          console.log(`${id}:`, element ? '✅ 存在' : '❌ 不存在');
+          if (element && element.tagName === 'INPUT') {
+            console.log(`  - 可編輯: ${!element.readOnly && !element.disabled}`);
+          }
+        });
+
+      } catch (error) {
+        console.error('displayResults 錯誤:', error);
+        const resultsList = document.getElementById('resultsList');
+        if (resultsList) {
+          resultsList.innerHTML = `<div class="alert alert-danger">顯示結果時發生錯誤: ${error.message}</div>`;
+        }
+      }
+    }
+
+    // 生成手機版卡片顯示
+    function generateMobileCards(data) {
+      const mobileResultsList = document.getElementById('mobileResultsList');
+      if (!mobileResultsList) return;
+
+      if (data.length === 0) {
+        mobileResultsList.innerHTML = '<div class="alert alert-info">沒有符合篩選條件的資料</div>';
+        return;
+      }
+
+      mobileResultsList.innerHTML = '';
+
+      data.forEach(item => {
+        const d = item.data;
+        const card = document.createElement('div');
+        card.className = 'result-card';
+
+        // 根據類型設定不同的顯示內容
+        let typeInfo = '';
+        let actionButton = '';
+        let mainInfo = '';
+
+        if (item.type === 'customer') {
+          typeInfo = '<span class="card-type bg-info text-white">客戶資料</span>';
+          mainInfo = `
+            <div class="card-row">
+              <span class="card-label">客戶代碼:</span>
+              <span class="card-value">${d.客戶代碼 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">客戶名稱:</span>
+              <span class="card-value">${d.客戶名稱 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">聯絡電話:</span>
+              <span class="card-value">${d.聯絡電話 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">地址:</span>
+              <span class="card-value">${d.聯絡地址 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">聯絡人:</span>
+              <span class="card-value">${d.聯絡人 || ''}</span>
+            </div>
+          `;
+          actionButton = d.客戶代碼 ? `<button class="btn btn-info btn-sm" onclick="showCustomerDetails('${d.客戶代碼}')"><i class='bi bi-person-lines-fill'></i> 客戶詳情</button>` : '';
+        } else if (item.type === 'sales') {
+          typeInfo = '<span class="card-type bg-primary text-white">銷售</span>';
+          mainInfo = `
+            <div class="card-row">
+              <span class="card-label">日期:</span>
+              <span class="card-value">${d.單據日期 || d.發貨日期 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">客戶:</span>
+              <span class="card-value">${d.客戶名稱 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">業務:</span>
+              <span class="card-value">${d.業務人員名稱 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">電話:</span>
+              <span class="card-value">${d.聯絡電話 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">地址:</span>
+              <span class="card-value">${d.送貨地址 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">備註:</span>
+              <span class="card-value">${d.備註 || ''}</span>
+            </div>
+          `;
+          actionButton = d.單據編號 ? `<button class="btn btn-info btn-sm" onclick="showDetails('${d.單據編號}')"><i class='bi bi-list-ul'></i> 查看明細</button>` : '';
+        } else if (item.type === 'repair') {
+          typeInfo = '<span class="card-type bg-success text-white">維修</span>';
+          mainInfo = `
+            <div class="card-row">
+              <span class="card-label">日期:</span>
+              <span class="card-value">${d.出勤開始時間 || d.發貨日期 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">客戶:</span>
+              <span class="card-value">${d.客戶名稱 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">維修人員:</span>
+              <span class="card-value">${d.維修人員 || d.服務人員 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">電話:</span>
+              <span class="card-value">${d.聯絡電話 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">地址:</span>
+              <span class="card-value">${d.服務地址 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">產品:</span>
+              <span class="card-value">${d.產品名稱 || ''}</span>
+            </div>
+          `;
+          actionButton = d.單據編號 ? `<button class="btn btn-info btn-sm" onclick="showRepairDetails('${d.單據編號}')"><i class='bi bi-list-ul'></i> 查看明細</button>` : '';
+        } else if (item.type === 'custody') {
+          typeInfo = '<span class="card-type bg-warning text-dark">寄倉出貨</span>';
+          mainInfo = `
+            <div class="card-row">
+              <span class="card-label">日期:</span>
+              <span class="card-value">${d.單據日期 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">客戶:</span>
+              <span class="card-value">${d.客戶名稱 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">業務:</span>
+              <span class="card-value">${d.業務人員名稱 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">電話:</span>
+              <span class="card-value">${d.聯絡電話 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">地址:</span>
+              <span class="card-value">${d.送貨地址 || ''}</span>
+            </div>
+            <div class="card-row">
+              <span class="card-label">備註:</span>
+              <span class="card-value">${d.備註 || ''}</span>
+            </div>
+          `;
+          actionButton = d.單據編號 ? `<button class="btn btn-warning btn-sm" onclick="showCustodyDetails('${d.單據編號}')"><i class='bi bi-list-ul'></i> 查看明細</button>` : '';
+        }
+
+        card.innerHTML = `
+          <div class="card-header">
+            ${typeInfo}
+            <span class="card-doc-no">${d.單據編號 || '無單據編號'}</span>
+          </div>
+          <div class="card-body">
+            ${mainInfo}
+          </div>
+          ${actionButton ? `<div class="card-actions">${actionButton}</div>` : ''}
+        `;
+
+        mobileResultsList.appendChild(card);
+      });
+    }
+
+    // 篩選功能
+    function applyFilters() {
+      // 安全地獲取篩選器值
+      const typeFilter = document.getElementById('typeFilter')?.value || '';
+      const docNoFilter = document.getElementById('docNoFilter')?.value.toLowerCase() || '';
+      const dateFromFilter = document.getElementById('dateFromFilter')?.value || '';
+      const dateToFilter = document.getElementById('dateToFilter')?.value || '';
+      const customerCodeFilter = document.getElementById('customerCodeFilter')?.value.toLowerCase() || '';
+      const customerNameFilter = document.getElementById('customerNameFilter')?.value.toLowerCase() || '';
+      const staffFilter = document.getElementById('staffFilter')?.value.toLowerCase() || '';
+      const phoneFilter = document.getElementById('phoneFilter')?.value.toLowerCase() || '';
+      const addressFilter = document.getElementById('addressFilter')?.value.toLowerCase() || '';
+      const remarksFilter = document.getElementById('remarksFilter')?.value.toLowerCase() || '';
+      const filterStatus = document.getElementById('filterStatus');
+
+      filteredResults = allResults.filter(item => {
+        const d = item.data;
+
+        // 類型篩選
+        if (typeFilter && item.type !== typeFilter) {
+          return false;
+        }
+
+        // 單據編號篩選
+        if (docNoFilter) {
+          const docNo = (d.單據編號 || '').toLowerCase();
+          if (!docNo.includes(docNoFilter)) return false;
+        }
+
+        // 客戶代碼篩選
+        if (customerCodeFilter) {
+          const customerCode = (d.客戶代碼 || '').toLowerCase();
+          if (!customerCode.includes(customerCodeFilter)) return false;
+        }
+
+        // 客戶名稱篩選
+        if (customerNameFilter) {
+          const customerName = (d.客戶名稱 || '').toLowerCase();
+          if (!customerName.includes(customerNameFilter)) return false;
+        }
+
+        // 業務/維修人員篩選
+        if (staffFilter) {
+          const staff = (d.業務人員名稱 || d.維修人員 || d.服務人員 || '').toLowerCase();
+          if (!staff.includes(staffFilter)) return false;
+        }
+
+        // 備註篩選
+        if (remarksFilter) {
+          const remarks = (d.備註 || d.產品名稱 || '').toLowerCase();
+          if (!remarks.includes(remarksFilter)) return false;
+        }
+
+        // 日期篩選
+        if (dateFromFilter || dateToFilter) {
+          const itemDate = d.發貨日期 || d.單據日期 || d.出勤開始時間 || '';
+          if (itemDate) {
+            // 解析日期 (與排序邏輯保持一致)
+            const parseDate = (rawDate) => {
+              if (!rawDate) return null;
+              let dateStr = rawDate.toString().trim();
+              dateStr = dateStr.replace(/\(.+?\)/g, '');
+
+              // 民國年格式
+              if (/^\d{2,3}\/\d{1,2}\/\d{1,2}/.test(dateStr)) {
+                const parts = dateStr.split('/');
+                const year = parseInt(parts[0], 10) + 1911;
+                const month = parts[1].padStart(2, '0');
+                const day = parts[2].split(' ')[0].padStart(2, '0');
+                return new Date(`${year}-${month}-${day}`);
+              }
+
+              // 中文年月日格式
+              if (/\d{4}年\d{1,2}月\d{1,2}日/.test(dateStr)) {
+                const year = dateStr.match(/(\d{4})年/)[1];
+                const month = dateStr.match(/年(\d{1,2})月/)[1].padStart(2, '0');
+                const day = dateStr.match(/月(\d{1,2})日/)[1].padStart(2, '0');
+                return new Date(`${year}-${month}-${day}`);
+              }
+
+              // ISO格式或其他標準格式
+              dateStr = dateStr.replace(/\//g, '-').split(' ')[0];
+              const parsed = new Date(dateStr);
+              return isNaN(parsed) ? null : parsed;
+            };
+
+            const itemDateObj = parseDate(itemDate);
+            if (itemDateObj) {
+              if (dateFromFilter) {
+                const fromDate = new Date(dateFromFilter);
+                if (itemDateObj < fromDate) return false;
+              }
+              if (dateToFilter) {
+                const toDate = new Date(dateToFilter);
+                if (itemDateObj > toDate) return false;
+              }
+            }
+          }
+        }
+
+        // 電話篩選
+        if (phoneFilter) {
+          const phone = (d.聯絡電話 || '').toLowerCase();
+          if (!phone.includes(phoneFilter)) return false;
+        }
+
+        // 地址篩選
+        if (addressFilter) {
+          const address = (d.聯絡地址 || d.送貨地址 || d.服務地址 || '').toLowerCase();
+          if (!address.includes(addressFilter)) return false;
+        }
+
+        return true;
+      });
+
+      // 更新篩選狀態顯示
+      const activeFilters = [];
+      if (typeFilter) activeFilters.push(`類型:${typeFilter}`);
+      if (docNoFilter) activeFilters.push(`單據:${docNoFilter}`);
+      if (dateFromFilter) activeFilters.push(`起始:${dateFromFilter}`);
+      if (dateToFilter) activeFilters.push(`結束:${dateToFilter}`);
+      if (customerCodeFilter) activeFilters.push(`代碼:${customerCodeFilter}`);
+      if (customerNameFilter) activeFilters.push(`客戶:${customerNameFilter}`);
+      if (staffFilter) activeFilters.push(`人員:${staffFilter}`);
+      if (phoneFilter) activeFilters.push(`電話:${phoneFilter}`);
+      if (addressFilter) activeFilters.push(`地址:${addressFilter}`);
+      if (remarksFilter) activeFilters.push(`備註:${remarksFilter}`);
+
+      if (activeFilters.length > 0) {
+        filterStatus.textContent = `已套用篩選: ${activeFilters.join(', ')}`;
+      } else {
+        filterStatus.textContent = '顯示全部結果';
+      }
+
+      displayResults(filteredResults);
+    }
+
+    // 清除篩選 (只清除篩選結果，保留輸入內容)
+    function clearFilters() {
+      // 重置篩選結果為全部資料，但保留使用者輸入的篩選條件
+      filteredResults = [...allResults];
+
+      const filterStatus = document.getElementById('filterStatus');
+      if (filterStatus) {
+        filterStatus.textContent = '已清除篩選 (保留輸入條件)';
+      }
+
+      displayResults(filteredResults);
+    }
+
+    // 完全清除所有篩選條件和結果
+    function resetAllFilters() {
+      const filters = [
+        'typeFilter', 'docNoFilter', 'dateFromFilter', 'dateToFilter',
+        'customerCodeFilter', 'customerNameFilter', 'staffFilter',
+        'phoneFilter', 'addressFilter', 'remarksFilter'
+      ];
+
+      const mobileFilters = [
+        'mobileTypeFilter', 'mobileCustomerNameFilter', 'mobileDateFromFilter', 'mobileDateToFilter'
+      ];
+
+      // 清除桌面版篩選器
+      filters.forEach(filterId => {
+        const element = document.getElementById(filterId);
+        if (element) {
+          element.value = '';
+        }
+      });
+
+      // 清除手機版篩選器
+      mobileFilters.forEach(filterId => {
+        const element = document.getElementById(filterId);
+        if (element) {
+          element.value = '';
+        }
+      });
+
+      filteredResults = [...allResults];
+
+      const filterStatus = document.getElementById('filterStatus');
+      if (filterStatus) {
+        filterStatus.textContent = '顯示全部結果';
+      }
+
+      displayResults(filteredResults);
+    }
+
+    // 綁定篩選事件 (延遲綁定，等表格建立後)
+    function bindFilterEvents() {
+      console.log('🔗 開始綁定篩選事件');
+
+      const typeFilter = document.getElementById('typeFilter');
+      const docNoFilter = document.getElementById('docNoFilter');
+      const dateFromFilter = document.getElementById('dateFromFilter');
+      const dateToFilter = document.getElementById('dateToFilter');
+      const customerCodeFilter = document.getElementById('customerCodeFilter');
+      const customerNameFilter = document.getElementById('customerNameFilter');
+      const staffFilter = document.getElementById('staffFilter');
+      const phoneFilter = document.getElementById('phoneFilter');
+      const addressFilter = document.getElementById('addressFilter');
+      const remarksFilter = document.getElementById('remarksFilter');
+      const clearFiltersBtn = document.getElementById('clearFilters');
+
+      // 類型下拉選單立即篩選
+      if (typeFilter) {
+        typeFilter.addEventListener('change', applyFilters);
+        console.log('✅ typeFilter 事件已綁定');
+      }
+
+      // 日期選擇器：只有在兩個日期都有值時才自動篩選，或者按 ENTER 鍵篩選
+      if (dateFromFilter) {
+        dateFromFilter.addEventListener('change', () => {
+          const dateFrom = dateFromFilter.value;
+          const dateTo = dateToFilter ? dateToFilter.value : '';
+          console.log(`起始日期變更: ${dateFrom}, 結束日期: ${dateTo}`);
+
+          // 只有當兩個日期都有值時才自動篩選
+          if (dateFrom && dateTo) {
+            console.log('兩個日期都已設定，開始篩選');
+            applyFilters();
+          } else {
+            console.log('等待設定完整的日期範圍');
+          }
+        });
+
+        dateFromFilter.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            console.log('起始日期按下 ENTER，開始篩選');
+            applyFilters();
+          }
+        });
+
+        console.log('✅ dateFromFilter 事件已綁定');
+      }
+
+      if (dateToFilter) {
+        dateToFilter.addEventListener('change', () => {
+          const dateFrom = dateFromFilter ? dateFromFilter.value : '';
+          const dateTo = dateToFilter.value;
+          console.log(`結束日期變更: ${dateTo}, 起始日期: ${dateFrom}`);
+
+          // 只有當兩個日期都有值時才自動篩選
+          if (dateFrom && dateTo) {
+            console.log('兩個日期都已設定，開始篩選');
+            applyFilters();
+          } else {
+            console.log('等待設定完整的日期範圍');
+          }
+        });
+
+        dateToFilter.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            console.log('結束日期按下 ENTER，開始篩選');
+            applyFilters();
+          }
+        });
+
+        console.log('✅ dateToFilter 事件已綁定');
+      }
+
+      // 文字輸入框：按 ENTER 鍵才篩選
+      const textFilters = [
+        { element: docNoFilter, name: 'docNoFilter' },
+        { element: customerCodeFilter, name: 'customerCodeFilter' },
+        { element: customerNameFilter, name: 'customerNameFilter' },
+        { element: staffFilter, name: 'staffFilter' },
+        { element: phoneFilter, name: 'phoneFilter' },
+        { element: addressFilter, name: 'addressFilter' },
+        { element: remarksFilter, name: 'remarksFilter' }
+      ];
+
+      textFilters.forEach(filter => {
+        if (filter.element) {
+          // 測試輸入功能
+          filter.element.addEventListener('focus', () => {
+            console.log(`${filter.name} 獲得焦點`);
+          });
+
+          filter.element.addEventListener('input', (e) => {
+            console.log(`${filter.name} 輸入: "${e.target.value}"`);
+          });
+
+          // 按 ENTER 鍵才篩選
+          filter.element.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              console.log(`${filter.name} 按下 ENTER，開始篩選`);
+              applyFilters();
+            }
+          });
+
+          console.log(`✅ ${filter.name} 事件已綁定`);
+        } else {
+          console.log(`❌ ${filter.name} 元素不存在`);
+        }
+      });
+
+      // 清除按鈕
+      if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', clearFilters);
+        console.log('✅ clearFilters 事件已綁定');
+      }
+
+      // 重置按鈕
+      const resetFiltersBtn = document.getElementById('resetFilters');
+      if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', resetAllFilters);
+        console.log('✅ resetFilters 事件已綁定');
+      }
+
+      // 綁定手機版篩選器事件
+      const mobileTypeFilter = document.getElementById('mobileTypeFilter');
+      const mobileCustomerNameFilter = document.getElementById('mobileCustomerNameFilter');
+      const mobileDateFromFilter = document.getElementById('mobileDateFromFilter');
+      const mobileDateToFilter = document.getElementById('mobileDateToFilter');
+      const mobileClearFilters = document.getElementById('mobileClearFilters');
+      const mobileResetFilters = document.getElementById('mobileResetFilters');
+
+      if (mobileTypeFilter) {
+        mobileTypeFilter.addEventListener('change', () => {
+          // 同步到桌面版篩選器
+          if (typeFilter) typeFilter.value = mobileTypeFilter.value;
+          applyFilters();
+        });
+      }
+
+      if (mobileCustomerNameFilter) {
+        mobileCustomerNameFilter.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            // 同步到桌面版篩選器
+            if (customerNameFilter) customerNameFilter.value = mobileCustomerNameFilter.value;
+            applyFilters();
+          }
+        });
+      }
+
+      if (mobileDateFromFilter) {
+        mobileDateFromFilter.addEventListener('change', () => {
+          // 同步到桌面版篩選器
+          if (dateFromFilter) dateFromFilter.value = mobileDateFromFilter.value;
+          const dateFrom = mobileDateFromFilter.value;
+          const dateTo = mobileDateToFilter ? mobileDateToFilter.value : '';
+          if (dateFrom && dateTo) {
+            applyFilters();
+          }
+        });
+      }
+
+      if (mobileDateToFilter) {
+        mobileDateToFilter.addEventListener('change', () => {
+          // 同步到桌面版篩選器
+          if (dateToFilter) dateToFilter.value = mobileDateToFilter.value;
+          const dateFrom = mobileDateFromFilter ? mobileDateFromFilter.value : '';
+          const dateTo = mobileDateToFilter.value;
+          if (dateFrom && dateTo) {
+            applyFilters();
+          }
+        });
+      }
+
+      if (mobileClearFilters) {
+        mobileClearFilters.addEventListener('click', clearFilters);
+      }
+
+      if (mobileResetFilters) {
+        mobileResetFilters.addEventListener('click', resetAllFilters);
+      }
+
+      console.log('✅ 所有篩選事件綁定完成');
+    }
+
+    // 將各種格式的數字字串轉成數值：移除千分位與非數字符號
+    function toNumber(val) {
+      if (typeof val === 'number') return val;
+      if (val == null) return 0;
+      const s = String(val)
+        .replace(/\s+/g, '')              // 去空白
+        .replace(/[\uFF10-\uFF19]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFF10 + 0x30)) // 全形數字轉半形
+        .replace(/[，,]/g, '')             // 去千分位
+        .replace(/[^0-9+\-\.]/g, '');    // 移除非數字符號
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    }
+
+    async function showDetails(docNo) {
+      console.log('🔍 showDetails 函數被調用，單據編號：', docNo);
+      try {
+        const res = await fetch(`/sales_info/sales_details/${docNo}`);
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        if (!data.success || !data.details) {
+          alert('無法獲取銷售明細資料');
+          return;
+        }
+
+        const total = data.details.reduce((sum, d) => sum + (parseFloat(d.含稅金額) || 0), 0);
+        const container = document.createElement('div');
+        container.className = 'detail-container';
+        container.innerHTML = `
+          <h5><i class="bi bi-bag-check me-2"></i>銷售明細</h5>
+          <table class="table">
+            <thead><tr><th>產品名稱</th><th>數量</th><th>單價</th><th>含稅金額</th></tr></thead>
+            <tbody>
+              ${data.details.length > 0 ? data.details.map(d => `
+                <tr>
+                  <td>${d.產品名稱 || ''}</td>
+                  <td>${d.交易數量 || ''}</td>
+                  <td>${d.交易價 || ''}</td>
+                  <td>${d.含稅金額 || ''}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="4" class="text-center">沒有明細資料</td></tr>'}
+              ${data.details.length > 0 ? `<tr class="total-row"><td colspan="3" class="text-end">總計</td><td>${total.toLocaleString()}</td></tr>` : ''}
+            </tbody>
+          </table>
+        `;
+
+        // 前端保險再計算一次合計（處理千分位或非數字符號導致 parseFloat 失真）
+        try {
+          const tbodyRows = Array.from(container.querySelectorAll('tbody tr'));
+          const totalRow = tbodyRows.find(tr => tr.classList.contains('total-row'));
+          const dataRows = tbodyRows.filter(tr => !tr.classList.contains('total-row'));
+          let fixedTotal = 0;
+          dataRows.forEach(tr => {
+            const tds = tr.querySelectorAll('td');
+            if (tds && tds.length >= 4) {
+              fixedTotal += toNumber(tds[3].textContent || '');
+            }
+          });
+          if (totalRow) {
+            const cells = totalRow.querySelectorAll('td');
+            if (cells && cells.length > 0) {
+              cells[cells.length - 1].textContent = fixedTotal.toLocaleString();
+            }
+          }
+        } catch (e) {
+          console.warn('Recalculate total failed:', e);
+        }
+
+        insertAfterRow(docNo, container, 'showDetails');
+      } catch (error) {
+        console.error('獲取銷售明細時發生錯誤：', error);
+        alert('獲取銷售明細時發生錯誤，請稍後再試');
+      }
+    }
+
+    async function showRepairDetails(docNo) {
+      const res = await fetch(`/sales_info/repair_details/${docNo}`);
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+
+      const container = document.createElement('div');
+      container.className = 'detail-container';
+      container.innerHTML = `
+        <h5><i class="bi bi-tools me-2"></i>維修紀錄</h5>
+        <p><strong>問題描述：</strong><br>${data["問題描述"] || '無'}</p>
+        <p><strong>報修原因：</strong><br>${data["報修原因"] || '無'}</p>
+        <p><strong>處理結果：</strong><br>${data["報修處理結果"] || '無'}</p>
+        <p><strong>完工情況：</strong><br><span class="multiline-finish">${data["完工情況"] || '無'}</span></p>
+        <p><strong>備註：</strong><br>${data["備註"] || '無'}</p>
+      `;
+      insertAfterRow(docNo, container, 'showRepairDetails');
+    }
+
+    async function showCustodyDetails(docNo) {
+      const res = await fetch(`/sales_info/custody_details/${docNo}`);
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+      const container = document.createElement('div');
+      container.className = 'detail-container';
+      container.innerHTML = `
+        <h5><i class="bi bi-box-seam me-2"></i>寄倉出貨明細</h5>
+        <table class="table">
+          <thead><tr><th>產品名稱</th><th>數量</th></tr></thead>
+          <tbody>
+            ${data.details.map(d => `
+              <tr>
+                <td>${d.產品名稱 || ''}</td>
+                <td>${d.交易數量 || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      insertAfterRow(docNo, container, 'showCustodyDetails');
+    }
+
+    async function showCustomerDetails(customerCode) {
+      const res = await fetch(`/sales_info/customer_details/${customerCode}`);
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+
+      const basic = data.basic_info;
+      const container = document.createElement('div');
+      container.className = 'detail-container';
+      container.innerHTML = `
+        <h5><i class="bi bi-person-lines-fill me-2"></i>客戶詳細資料</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-primary">基本資訊</h6>
+            <table class="table table-sm">
+              <tr><td><strong>客戶代碼：</strong></td><td>${basic.客戶代碼 || ''}</td></tr>
+              <tr><td><strong>客戶名稱：</strong></td><td>${basic.客戶名稱 || ''}</td></tr>
+              <tr><td><strong>聯絡地址：</strong></td><td>${basic.聯絡地址 || ''}</td></tr>
+              <tr><td><strong>郵遞區號：</strong></td><td>${basic.郵遞區號 || ''}</td></tr>
+              <tr><td><strong>聯絡電話：</strong></td><td>${basic.聯絡電話 || ''}</td></tr>
+              <tr><td><strong>聯絡人：</strong></td><td>${basic.聯絡人 || ''}</td></tr>
+              <tr><td><strong>業務人員：</strong></td><td>${basic.業務人員名稱 || ''}</td></tr>
+              <tr><td><strong>銷售分類：</strong></td><td>${basic.銷售分類碼名稱 || ''}</td></tr>
+              <tr><td><strong>銷售通路：</strong></td><td>${basic.預設銷售通路名稱 || ''}</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            ${data.addresses && data.addresses.length > 0 ? `
+              <h6 class="text-success">送貨地址</h6>
+              <div class="mb-3">
+                ${data.addresses.map(addr => `
+                  <div class="border p-2 mb-2 rounded">
+                    <small class="text-muted">地址資訊</small><br>
+                    ${Object.values(addr).filter(v => v && v.trim()).join(' | ')}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            ${data.contacts && data.contacts.length > 0 ? `
+              <h6 class="text-warning">業務聯絡人</h6>
+              <div>
+                ${data.contacts.map(contact => `
+                  <div class="border p-2 mb-2 rounded">
+                    <small class="text-muted">聯絡人資訊</small><br>
+                    ${Object.values(contact).filter(v => v && v.trim()).join(' | ')}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+      insertAfterRow(customerCode, container, 'showCustomerDetails');
+    }
+
+    function insertAfterRow(docNo, element, funcName) {
+      // 檢查是否為手機版顯示
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // 手機版：在卡片中插入明細
+        insertInMobileCard(docNo, element, funcName);
+      } else {
+        // 桌面版：在表格中插入明細
+        const row = document.querySelector(`tr:has(button[onclick="${funcName}('${docNo}')"])`);
+        if (!row) return;
+
+        const nextRow = row.nextElementSibling;
+        if (nextRow && nextRow.classList.contains('detail-row')) {
+          nextRow.remove();
+        } else {
+          const detailRow = document.createElement('tr');
+          detailRow.className = 'detail-row';
+          const cell = document.createElement('td');
+          cell.colSpan = 100;
+          cell.appendChild(element);
+          detailRow.appendChild(cell);
+          row.parentNode.insertBefore(detailRow, row.nextSibling);
+        }
+      }
+    }
+
+    // 手機版卡片明細插入函數
+    function insertInMobileCard(docNo, element, funcName) {
+      // 找到對應的卡片
+      const cards = document.querySelectorAll('.result-card');
+      let targetCard = null;
+
+      cards.forEach(card => {
+        const button = card.querySelector(`button[onclick="${funcName}('${docNo}')"]`);
+        if (button) {
+          targetCard = card;
+        }
+      });
+
+      if (!targetCard) return;
+
+      // 檢查是否已經有明細顯示
+      const existingDetail = targetCard.querySelector('.mobile-detail-container');
+      if (existingDetail) {
+        existingDetail.remove();
+        return;
+      }
+
+      // 創建手機版明細容器
+      const mobileDetailContainer = document.createElement('div');
+      mobileDetailContainer.className = 'mobile-detail-container';
+      mobileDetailContainer.style.cssText = `
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        border-left: 4px solid #007bff;
+      `;
+
+      // 調整明細內容的樣式以適合手機
+      element.style.cssText = `
+        margin: 0;
+        font-size: 0.9rem;
+      `;
+
+      // 如果明細包含表格，調整表格樣式
+      const tables = element.querySelectorAll('table');
+      tables.forEach(table => {
+        table.style.cssText = `
+          font-size: 0.8rem;
+          margin-bottom: 0;
+        `;
+        table.className = 'table table-sm table-bordered';
+      });
+
+      mobileDetailContainer.appendChild(element);
+      targetCard.appendChild(mobileDetailContainer);
+    }
+
+    // 顯示服務登記卡資料
+    async function showServiceCard(customerCode) {
+      if (!customerCode) {
+        alert('客戶編號不能為空');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/sales_info/service_card/${customerCode}`);
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        // 開啟新視窗顯示服務登記卡資料
+        const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+        newWindow.document.write(generateServiceCardHTML(data, customerCode));
+        newWindow.document.close();
+
+      } catch (error) {
+        console.error('查詢服務登記卡時發生錯誤：', error);
+        alert('查詢服務登記卡時發生錯誤');
+      }
+    }
+
+    // 生成服務登記卡HTML內容
+    function generateServiceCardHTML(data, customerCode) {
+      let html = `
+        <!DOCTYPE html>
+        <html lang="zh-TW">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>服務登記卡 - ${customerCode}</title>
+          <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+          <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+          <style>
+            body { font-family: 'Microsoft JhengHei', sans-serif; }
+            .service-card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+            .main-info { background-color: #f8f9fa; border-left: 4px solid #007bff; }
+            .detail-section { margin-top: 20px; }
+            .table th { background-color: #e9ecef; }
+          </style>
+        </head>
+        <body>
+          <div class="container-fluid py-4">
+            <div class="service-card-header p-4 rounded mb-4">
+              <h2><i class="bi bi-card-checklist me-2"></i>服務登記卡 - ${customerCode}</h2>
+            </div>
+      `;
+
+      if (data.length === 0) {
+        html += `
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>找不到客戶編號 ${customerCode} 的服務登記卡資料
+            </div>
+          </div>
+        </body>
+        </html>
+        `;
+        return html;
+      }
+
+      // 按服務登記號分組顯示
+      data.forEach(service => {
+        html += `
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>服務登記號：${service.main.服務登記號}</h5>
+            </div>
+            <div class="card-body">
+              <div class="main-info p-3 rounded mb-3">
+                <h6 class="text-primary mb-3"><i class="bi bi-info-circle me-2"></i>主檔資料</h6>
+                <div class="row">
+                  <div class="col-md-6">
+                    <table class="table table-sm table-borderless">
+                      <tr><td><strong>服務登記號：</strong></td><td>${service.main.服務登記號 || ''}</td></tr>
+                      <tr><td><strong>客戶：</strong></td><td>${service.main.客戶 || ''}</td></tr>
+                      <tr><td><strong>客戶名稱：</strong></td><td>${service.main.客戶名稱 || ''}</td></tr>
+                      <tr><td><strong>產品：</strong></td><td>${service.main.產品 || ''}</td></tr>
+                      <tr><td><strong>產品名稱：</strong></td><td>${service.main.產品名稱 || ''}</td></tr>
+                      <tr><td><strong>購買日期：</strong></td><td>${service.main.購買日期 || ''}</td></tr>
+                    </table>
+                  </div>
+                  <div class="col-md-6">
+                    <table class="table table-sm table-borderless">
+                      <tr><td><strong>聯絡人：</strong></td><td>${service.main.聯絡人 || ''}</td></tr>
+                      <tr><td><strong>聯絡電話：</strong></td><td>${service.main.聯絡電話 || ''}</td></tr>
+                      <tr><td><strong>地址：</strong></td><td>${service.main.地址 || ''}</td></tr>
+                      <tr><td><strong>行動電話：</strong></td><td>${service.main.行動電話 || ''}</td></tr>
+                      <tr><td><strong>保固期限：</strong></td><td>${service.main.保固期限 || ''}</td></tr>
+                      <tr><td><strong>裝機位置說明：</strong></td><td>${service.main.裝機位置說明 || ''}</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+        `;
+
+        if (service.details && service.details.length > 0) {
+          html += `
+              <div class="detail-section">
+                <h6 class="text-success mb-3"><i class="bi bi-list-ul me-2"></i>明細資料</h6>
+                <div class="table-responsive">
+                  <table class="table table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>物料代碼</th>
+                        <th>產品名稱</th>
+                        <th>標準售價</th>
+                        <th>更換期限(月)</th>
+                        <th>上次更換</th>
+                        <th>上次通知</th>
+                        <th>下次通知</th>
+                        <th>數量</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+          `;
+
+          service.details.forEach(detail => {
+            html += `
+                      <tr>
+                        <td>${detail.物料代碼 || ''}</td>
+                        <td>${detail.產品名稱 || ''}</td>
+                        <td>${detail.標準售價 ? detail.標準售價.toLocaleString() : ''}</td>
+                        <td>${detail.更換期限_月 || ''}</td>
+                        <td>${detail.上次更換 || ''}</td>
+                        <td>${detail.上次通知 || ''}</td>
+                        <td>${detail.下次通知 || ''}</td>
+                        <td>${detail.數量 || ''}</td>
+                      </tr>
+            `;
+          });
+
+          html += `
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+          `;
+        } else {
+          html += `
+              <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>此服務登記號沒有明細資料
+              </div>
+          `;
+        }
+
+        html += `
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </body>
+        </html>
+      `;
+
+      return html;
+    }
+
+    // 確認函數是否正確加載
+    console.log('✅ showDetails 函數已定義：', typeof showDetails === 'function');
+    console.log('✅ showRepairDetails 函數已定義：', typeof showRepairDetails === 'function');
+    console.log('✅ showCustodyDetails 函數已定義：', typeof showCustodyDetails === 'function');
+    console.log('✅ showCustomerDetails 函數已定義：', typeof showCustomerDetails === 'function');
+    console.log('✅ showServiceCard 函數已定義：', typeof showServiceCard === 'function');
+  </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+

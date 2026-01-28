@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盤點系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: bold;
+        }
+
+        #qr-reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6a4190);
+        }
+
+        .product-info {
+            background: #e8f5e8;
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .record-item {
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .record-item:hover {
+            background: #f0f4ff;
+        }
+
+        .product-card {
+            transition: all 0.3s ease;
+            border: 1px solid #dee2e6;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .product-card .card-title {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-card .card-text {
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding: 0.5rem;
+            }
+
+            .card {
+                margin-bottom: 1rem;
+            }
+
+            .product-card .col-md-6 {
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h2><i class="bi bi-clipboard-check"></i> 盤點系統</h2>
+                    <small>使用者：{{ session['username'] }}</small>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-sm">
+                        <i class="bi bi-house"></i> 返回首頁
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- 初始化資料庫按鈕 -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <button id="initDbBtn" class="btn btn-warning">
+                    <i class="bi bi-database-gear"></i> 初始化資料庫
+                </button>
+            </div>
+        </div>
+
+        <!-- 倉別選擇區域 -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-building"></i> 倉別設定
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <label for="warehouseSelect" class="form-label fw-bold">選擇今日盤點倉別：</label>
+                                <select id="warehouseSelect" class="form-select">
+                                    <option value="">請選擇倉別</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button id="confirmWarehouseBtn" class="btn btn-success" disabled>
+                                    <i class="bi bi-check-circle"></i> 確認倉別
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <div id="warehouseStatus" class="text-muted">
+                                    <i class="bi bi-info-circle"></i> 請先選擇倉別
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- QR Code 掃描區域 -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-qr-code-scan"></i> QR Code 掃描
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <button id="startScanBtn" class="btn btn-primary btn-lg">
+                                <i class="bi bi-camera"></i> 開始掃描
+                            </button>
+                            <button id="stopScanBtn" class="btn btn-danger btn-lg hidden">
+                                <i class="bi bi-stop-circle"></i> 停止掃描
+                            </button>
+                        </div>
+
+                        <div id="qr-reader" class="hidden"></div>
+
+                        <!-- 手動輸入QR Code -->
+                        <div class="mt-3">
+                            <label for="manualQrCode" class="form-label">手動輸入QR Code：</label>
+                            <div class="input-group">
+                                <input type="text" id="manualQrCode" class="form-control" placeholder="輸入QR Code">
+                                <button id="manualSearchBtn" class="btn btn-outline-primary">
+                                    <i class="bi bi-search"></i> 查詢
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 產品名稱查詢 -->
+                        <div class="mt-3">
+                            <label for="productNameSearch" class="form-label">或用產品名稱查詢：</label>
+                            <div class="input-group">
+                                <input type="text" id="productNameSearch" class="form-control" placeholder="輸入產品名稱關鍵字">
+                                <button id="productNameSearchBtn" class="btn btn-outline-success">
+                                    <i class="bi bi-search"></i> 搜尋產品
+                                </button>
+                            </div>
+                            <small class="text-muted">適用於沒有條碼的商品</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 產品資訊和盤點輸入 -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-box-seam"></i> 產品資訊
+                    </div>
+                    <div class="card-body">
+                        <div id="productInfo" class="hidden">
+                            <div class="product-info">
+                                <h5 id="productName"></h5>
+                                <p class="mb-1"><strong>產品代碼：</strong><span id="productCode"></span></p>
+                                <p class="mb-1"><strong>規格：</strong><span id="productSpec"></span></p>
+                                <p class="mb-0"><strong>單位：</strong><span id="productUnit"></span></p>
+                            </div>
+
+                            <form id="inventoryForm">
+                                <input type="hidden" id="currentQrCode">
+
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">盤點數量：</label>
+                                    <input type="number" id="quantity" class="form-control" min="0" step="1" required>
+                                </div>
+
+                                <button type="submit" class="btn btn-success btn-lg w-100" id="submitInventoryBtn"
+                                    disabled>
+                                    <i class="bi bi-check-circle"></i> 送出盤點
+                                </button>
+
+                                <div class="mt-2">
+                                    <small class="text-muted" id="warehouseHint">
+                                        <i class="bi bi-exclamation-triangle"></i> 請先在上方選擇並確認倉別
+                                    </small>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div id="noProductInfo" class="text-center text-muted">
+                            <i class="bi bi-qr-code" style="font-size: 3rem;"></i>
+                            <p>請掃描QR Code、手動輸入或搜尋產品名稱</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 產品搜尋結果 -->
+        <div class="row" id="searchResultsRow" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-search"></i> 產品搜尋結果</span>
+                        <button id="closeSearchBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-x"></i> 關閉
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="searchResults">
+                            <!-- 搜尋結果將在這裡顯示 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 今日盤點記錄 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-list-check"></i> 今日盤點記錄</span>
+                        <button id="refreshRecordsBtn" class="btn btn-sm btn-light">
+                            <i class="bi bi-arrow-clockwise"></i> 重新整理
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="todayRecords">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-hourglass-split"></i> 載入中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改數量 Modal -->
+    <div class="modal fade" id="editQuantityModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">修改盤點數量</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editQuantityForm">
+                        <input type="hidden" id="editRecordId">
+                        <div class="mb-3">
+                            <label for="editQuantity" class="form-label">新數量：</label>
+                            <input type="number" id="editQuantity" class="form-control" min="0" step="1" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" id="saveEditBtn" class="btn btn-primary">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let html5QrcodeScanner = null;
+        let warehouses = [];
+        let currentUserWarehouse = null; // 儲存當前使用者的倉別資訊
+        let isWarehouseConfirmed = false; // 倉別是否已確認
+
+        // 頁面載入完成後初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            loadWarehouses();
+            loadTodayRecords();
+            setupWarehouseEvents();
+        });
+
+        // 初始化資料庫
+        document.getElementById('initDbBtn').addEventListener('click', function () {
+            if (confirm('確定要初始化資料庫嗎？這將重新建立所有資料表。')) {
+                fetch('/inventory/init_database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('資料庫初始化成功！');
+                            loadWarehouses();
+                        } else {
+                            alert('初始化失敗：' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('初始化過程發生錯誤');
+                    });
+            }
+        });
+
+        // 載入倉別資料
+        function loadWarehouses() {
+            fetch('/inventory/get_warehouses')
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        warehouses = data;
+                        const select = document.getElementById('warehouseSelect');
+                        select.innerHTML = '<option value="">請選擇倉別</option>';
+
+                        data.forEach(warehouse => {
+                            const option = document.createElement('option');
+                            option.value = warehouse.warehouse_code;
+                            option.textContent = `${warehouse.warehouse_code} - ${warehouse.warehouse_name}`;
+                            option.dataset.name = warehouse.warehouse_name;
+                            select.appendChild(option);
+                        });
+
+                        // 載入使用者今日選擇的倉別
+                        loadUserWarehouse();
+                    }
+                })
+                .catch(error => {
+                    console.error('載入倉別資料錯誤:', error);
+                });
+        }
+
+        // 設定倉別相關事件
+        function setupWarehouseEvents() {
+            // 倉別選擇變更事件
+            document.getElementById('warehouseSelect').addEventListener('change', function () {
+                const confirmBtn = document.getElementById('confirmWarehouseBtn');
+                confirmBtn.disabled = !this.value;
+            });
+
+            // 確認倉別按鈕事件
+            document.getElementById('confirmWarehouseBtn').addEventListener('click', function () {
+                confirmWarehouse();
+            });
+        }
+
+        // 載入使用者今日選擇的倉別
+        function loadUserWarehouse() {
+            fetch('/inventory/get_user_warehouse')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.warehouse_code) {
+                        // 儲存倉別資訊到全域變數
+                        currentUserWarehouse = {
+                            code: data.warehouse_code,
+                            name: data.warehouse_name
+                        };
+
+                        // 設定倉別已確認
+                        isWarehouseConfirmed = true;
+
+                        // 更新UI顯示已確認的倉別
+                        updateWarehouseUI(data.warehouse_code, data.warehouse_name, true);
+
+                        // 啟用盤點功能
+                        enableInventoryFunction();
+                    }
+                })
+                .catch(error => {
+                    console.error('載入使用者倉別錯誤:', error);
+                });
+        }
+
+        // 確認倉別
+        function confirmWarehouse() {
+            const select = document.getElementById('warehouseSelect');
+            const warehouseCode = select.value;
+
+            if (!warehouseCode) {
+                alert('請選擇倉別');
+                return;
+            }
+
+            const selectedOption = select.selectedOptions[0];
+            const warehouseName = selectedOption.dataset.name;
+
+            // 儲存倉別資訊
+            currentUserWarehouse = {
+                code: warehouseCode,
+                name: warehouseName
+            };
+
+            // 設定倉別已確認
+            isWarehouseConfirmed = true;
+
+            // 更新UI
+            updateWarehouseUI(warehouseCode, warehouseName, false);
+
+            // 啟用盤點功能
+            enableInventoryFunction();
+        }
+
+        // 更新倉別UI顯示
+        function updateWarehouseUI(warehouseCode, warehouseName, isFromDatabase) {
+            const select = document.getElementById('warehouseSelect');
+            const confirmBtn = document.getElementById('confirmWarehouseBtn');
+            const status = document.getElementById('warehouseStatus');
+
+            // 設定選單值並禁用
+            select.value = warehouseCode;
+            select.disabled = true;
+            select.style.backgroundColor = '#e9ecef';
+
+            // 隱藏確認按鈕
+            confirmBtn.style.display = 'none';
+
+            // 更新狀態顯示
+            const statusText = isFromDatabase ? '已載入今日倉別' : '倉別已確認';
+            status.innerHTML = `
+                <div class="text-success">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <strong>${statusText}：${warehouseCode} - ${warehouseName}</strong>
+                    <br><small class="text-muted">一人一天只能盤點一個倉別</small>
+                </div>
+            `;
+        }
+
+        // 啟用盤點功能
+        function enableInventoryFunction() {
+            const submitBtn = document.getElementById('submitInventoryBtn');
+            const hint = document.getElementById('warehouseHint');
+
+            submitBtn.disabled = false;
+            hint.innerHTML = `
+                <i class="bi bi-check-circle text-success"></i>
+                <span class="text-success">倉別已確認，可以開始盤點</span>
+            `;
+        }
+
+        // 開始QR Code掃描
+        document.getElementById('startScanBtn').addEventListener('click', function () {
+            startScanning();
+        });
+
+        // 停止QR Code掃描
+        document.getElementById('stopScanBtn').addEventListener('click', function () {
+            stopScanning();
+        });
+
+        // 手動搜尋QR Code
+        document.getElementById('manualSearchBtn').addEventListener('click', function () {
+            const qrCode = document.getElementById('manualQrCode').value.trim();
+            if (qrCode) {
+                searchProduct(qrCode);
+            }
+        });
+
+        // 手動輸入框按Enter搜尋
+        document.getElementById('manualQrCode').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const qrCode = this.value.trim();
+                if (qrCode) {
+                    searchProduct(qrCode);
+                }
+            }
+        });
+
+        // 產品名稱搜尋
+        document.getElementById('productNameSearchBtn').addEventListener('click', function () {
+            const keyword = document.getElementById('productNameSearch').value.trim();
+            if (keyword) {
+                searchProductsByName(keyword);
+            }
+        });
+
+        // 產品名稱搜尋框按Enter搜尋
+        document.getElementById('productNameSearch').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const keyword = this.value.trim();
+                if (keyword) {
+                    searchProductsByName(keyword);
+                }
+            }
+        });
+
+        // 關閉搜尋結果
+        document.getElementById('closeSearchBtn').addEventListener('click', function () {
+            closeSearchResults();
+        });
+
+        // 開始掃描
+        function startScanning() {
+            const qrReaderDiv = document.getElementById('qr-reader');
+            qrReaderDiv.classList.remove('hidden');
+            document.getElementById('startScanBtn').classList.add('hidden');
+            document.getElementById('stopScanBtn').classList.remove('hidden');
+
+            html5QrcodeScanner = new Html5Qrcode("qr-reader");
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText, decodedResult) => {
+                    // 掃描成功
+                    searchProduct(decodedText);
+                    stopScanning();
+                },
+                (errorMessage) => {
+                    // 掃描錯誤（正常情況，不需要處理）
+                }
+            ).catch(err => {
+                console.error('無法啟動相機:', err);
+                alert('無法啟動相機，請檢查權限設定或使用手動輸入');
+                stopScanning();
+            });
+        }
+
+        // 停止掃描
+        function stopScanning() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }).catch(err => {
+                    console.error('停止掃描錯誤:', err);
+                });
+            }
+
+            document.getElementById('qr-reader').classList.add('hidden');
+            document.getElementById('startScanBtn').classList.remove('hidden');
+            document.getElementById('stopScanBtn').classList.add('hidden');
+        }
+
+        // 搜尋產品
+        function searchProduct(qrCode) {
+            fetch(`/inventory/get_product/${encodeURIComponent(qrCode)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('找不到產品：' + data.error);
+                        clearProductInfo();
+                    } else {
+                        displayProductInfo(data, qrCode);
+                    }
+                })
+                .catch(error => {
+                    console.error('搜尋產品錯誤:', error);
+                    alert('搜尋產品時發生錯誤');
+                });
+        }
+
+        // 顯示產品資訊
+        function displayProductInfo(product, qrCode) {
+            document.getElementById('currentQrCode').value = qrCode;
+            document.getElementById('productName').textContent = product.product_name || '未知產品';
+            document.getElementById('productCode').textContent = product.product_code || '';
+            document.getElementById('productSpec').textContent = product.specification || '';
+            document.getElementById('productUnit').textContent = product.unit || '';
+
+            document.getElementById('productInfo').classList.remove('hidden');
+            document.getElementById('noProductInfo').classList.add('hidden');
+
+            // 清空數量輸入框並聚焦
+            document.getElementById('quantity').value = '';
+            document.getElementById('quantity').focus();
+        }
+
+        // 清除產品資訊
+        function clearProductInfo() {
+            document.getElementById('productInfo').classList.add('hidden');
+            document.getElementById('noProductInfo').classList.remove('hidden');
+            document.getElementById('inventoryForm').reset();
+        }
+
+        // 根據產品名稱搜尋產品
+        function searchProductsByName(keyword) {
+            if (keyword.length < 2) {
+                alert('搜尋關鍵字至少需要2個字元');
+                return;
+            }
+
+            fetch(`/inventory/search_products?keyword=${encodeURIComponent(keyword)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('搜尋失敗：' + data.error);
+                    } else {
+                        displaySearchResults(data, keyword);
+                    }
+                })
+                .catch(error => {
+                    console.error('搜尋產品錯誤:', error);
+                    alert('搜尋產品時發生錯誤');
+                });
+        }
+
+        // 顯示搜尋結果
+        function displaySearchResults(products, keyword) {
+            const resultsContainer = document.getElementById('searchResults');
+            const resultsRow = document.getElementById('searchResultsRow');
+
+            if (!products || products.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="bi bi-search" style="font-size: 2rem;"></i>
+                        <p>找不到包含「${keyword}」的產品</p>
+                    </div>
+                `;
+            } else {
+                let html = `
+                    <div class="mb-3">
+                        <strong>找到 ${products.length} 個相關產品：</strong>
+                        <small class="text-muted">（搜尋關鍵字：${keyword}）</small>
+                    </div>
+                    <div class="row">
+                `;
+
+                products.forEach(product => {
+                    html += `
+                        <div class="col-md-6 mb-3">
+                            <div class="card product-card" style="cursor: pointer;"
+                                 onclick="selectProductFromSearch('${product.qr_code || ''}', '${product.product_name}', '${product.product_code || ''}', '${product.specification || ''}', '${product.unit || ''}')">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">${product.product_name}</h6>
+                                    <p class="card-text mb-1">
+                                        <small class="text-muted">
+                                            <strong>代碼：</strong>${product.product_code || '無'}<br>
+                                            <strong>規格：</strong>${product.specification || '無'}<br>
+                                            <strong>單位：</strong>${product.unit || '無'}
+                                        </small>
+                                    </p>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">點擊選擇</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                resultsContainer.innerHTML = html;
+            }
+
+            // 顯示搜尋結果區域
+            resultsRow.style.display = 'block';
+
+            // 滾動到搜尋結果
+            resultsRow.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 從搜尋結果選擇產品
+        function selectProductFromSearch(qrCode, productName, productCode, specification, unit) {
+            const product = {
+                qr_code: qrCode,
+                product_name: productName,
+                product_code: productCode,
+                specification: specification,
+                unit: unit
+            };
+
+            // 顯示產品資訊
+            displayProductInfo(product, qrCode || 'MANUAL_' + Date.now());
+
+            // 關閉搜尋結果
+            closeSearchResults();
+
+            // 清空搜尋框
+            document.getElementById('productNameSearch').value = '';
+        }
+
+        // 關閉搜尋結果
+        function closeSearchResults() {
+            document.getElementById('searchResultsRow').style.display = 'none';
+        }
+
+        // 盤點表單提交
+        document.getElementById('inventoryForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // 檢查倉別是否已確認
+            if (!isWarehouseConfirmed || !currentUserWarehouse) {
+                alert('請先選擇並確認倉別');
+                return;
+            }
+
+            const qrCode = document.getElementById('currentQrCode').value;
+            const productName = document.getElementById('productName').textContent;
+            const quantity = parseInt(document.getElementById('quantity').value);
+
+            // 使用已確認的倉別資訊
+            const warehouseCode = currentUserWarehouse.code;
+            const warehouseName = currentUserWarehouse.name;
+
+            if (isNaN(quantity) || quantity < 0) {
+                alert('請輸入有效的數量');
+                return;
+            }
+
+            const data = {
+                qr_code: qrCode,
+                product_name: productName,
+                warehouse_code: warehouseCode,
+                warehouse_name: warehouseName,
+                quantity: quantity
+            };
+
+            fetch('/inventory/save_inventory', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('盤點記錄儲存成功！');
+                        clearProductInfo();
+                        loadTodayRecords();
+                        document.getElementById('manualQrCode').value = '';
+                    } else {
+                        alert('儲存失敗：' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('儲存錯誤:', error);
+                    alert('儲存時發生錯誤');
+                });
+        });
+
+        // 載入今日記錄
+        function loadTodayRecords() {
+            fetch('/inventory/get_today_records')
+                .then(response => response.json())
+                .then(data => {
+                    displayTodayRecords(data);
+                })
+                .catch(error => {
+                    console.error('載入今日記錄錯誤:', error);
+                    document.getElementById('todayRecords').innerHTML =
+                        '<div class="text-center text-danger">載入記錄失敗</div>';
+                });
+        }
+
+        // 顯示今日記錄
+        function displayTodayRecords(records) {
+            const container = document.getElementById('todayRecords');
+
+            if (!records || records.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">今日尚無盤點記錄</div>';
+                return;
+            }
+
+            let html = '';
+            records.forEach(record => {
+                const time = new Date(record.inventory_time).toLocaleTimeString('zh-TW', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                html += `
+                    <div class="record-item p-3 rounded">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <strong>${record.product_name}</strong>
+                                <br><small class="text-muted">${record.qr_code}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-primary">${record.warehouse_code}</span>
+                                <br><small>${record.warehouse_name}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="fs-5 fw-bold text-success">${record.quantity}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted">${time}</small>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <button class="btn btn-sm btn-outline-primary edit-btn me-1"
+                                        data-id="${record.id}"
+                                        data-quantity="${record.quantity}">
+                                    <i class="bi bi-pencil"></i> 修改
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-btn"
+                                        data-id="${record.id}"
+                                        data-product="${record.product_name}">
+                                    <i class="bi bi-trash"></i> 刪除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // 綁定修改按鈕事件
+            container.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const recordId = this.dataset.id;
+                    const currentQuantity = this.dataset.quantity;
+                    showEditModal(recordId, currentQuantity);
+                });
+            });
+
+            // 綁定刪除按鈕事件
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const recordId = this.dataset.id;
+                    const productName = this.dataset.product;
+                    showDeleteConfirm(recordId, productName);
+                });
+            });
+        }
+
+        // 重新整理記錄
+        document.getElementById('refreshRecordsBtn').addEventListener('click', function () {
+            loadTodayRecords();
+        });
+
+        // 顯示修改Modal
+        function showEditModal(recordId, currentQuantity) {
+            document.getElementById('editRecordId').value = recordId;
+            document.getElementById('editQuantity').value = currentQuantity;
+
+            const modal = new bootstrap.Modal(document.getElementById('editQuantityModal'));
+            modal.show();
+        }
+
+        // 儲存修改
+        document.getElementById('saveEditBtn').addEventListener('click', function () {
+            const recordId = document.getElementById('editRecordId').value;
+            const newQuantity = parseInt(document.getElementById('editQuantity').value);
+
+            if (isNaN(newQuantity) || newQuantity < 0) {
+                alert('請輸入有效的數量');
+                return;
+            }
+
+            fetch(`/inventory/update_inventory/${recordId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ quantity: newQuantity })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('記錄更新成功！');
+                        loadTodayRecords();
+                        bootstrap.Modal.getInstance(document.getElementById('editQuantityModal')).hide();
+                    } else {
+                        alert('更新失敗：' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('更新錯誤:', error);
+                    alert('更新時發生錯誤');
+                });
+        });
+
+        // 顯示刪除確認對話框
+        function showDeleteConfirm(recordId, productName) {
+            if (confirm(`確定要刪除「${productName}」的盤點記錄嗎？\n\n此操作無法復原！`)) {
+                deleteRecord(recordId);
+            }
+        }
+
+        // 刪除記錄
+        function deleteRecord(recordId) {
+            fetch(`/inventory/delete_inventory/${recordId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('記錄刪除成功！');
+                        loadTodayRecords();
+
+                        // 如果刪除了所有記錄，重新啟用倉別選擇
+                        setTimeout(() => {
+                            fetch('/inventory/get_today_records')
+                                .then(response => response.json())
+                                .then(records => {
+                                    if (!records || records.length === 0) {
+                                        // 重置所有倉別相關狀態
+                                        resetWarehouseSelection();
+                                    }
+                                });
+                        }, 500);
+                    } else {
+                        alert('刪除失敗：' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('刪除錯誤:', error);
+                    alert('刪除時發生錯誤');
+                });
+        }
+
+        // 重置倉別選擇
+        function resetWarehouseSelection() {
+            // 清除全域變數
+            currentUserWarehouse = null;
+            isWarehouseConfirmed = false;
+
+            // 重置倉別選擇UI
+            const select = document.getElementById('warehouseSelect');
+            const confirmBtn = document.getElementById('confirmWarehouseBtn');
+            const status = document.getElementById('warehouseStatus');
+            const submitBtn = document.getElementById('submitInventoryBtn');
+            const hint = document.getElementById('warehouseHint');
+
+            // 恢復選單
+            select.disabled = false;
+            select.value = '';
+            select.style.backgroundColor = '';
+
+            // 顯示確認按鈕
+            confirmBtn.style.display = 'inline-block';
+            confirmBtn.disabled = true;
+
+            // 重置狀態顯示
+            status.innerHTML = `
+                <div class="text-muted">
+                    <i class="bi bi-info-circle"></i> 請先選擇倉別
+                </div>
+            `;
+
+            // 禁用盤點功能
+            submitBtn.disabled = true;
+            hint.innerHTML = `
+                <i class="bi bi-exclamation-triangle"></i> 請先在上方選擇並確認倉別
+            `;
+        }
+    </script>
+</body>
+
+</html>

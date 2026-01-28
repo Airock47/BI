@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BI 管理系統 - 主選單</title>
+    <!-- FontAwesome v6.4.0 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --navbar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --text-dark: #2c3e50;
+            --text-muted: #7f8c8d;
+            --color-business: #3498db;
+            --color-assistant: #1abc9c;
+            --color-sales: #9b59b6;
+            --color-crm: #f39c12;
+            --color-inventory: #27ae60;
+            --color-share: #7f8c8d;
+            --color-procure: #e74c3c;
+            --color-bonus: #673ab7;
+            --color-admin: #009688;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+        }
+
+        /* Navbar Style */
+        .navbar {
+            background-color: var(--navbar-bg);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        .navbar-brand img {
+            height: 45px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .navbar-brand span {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-welcome {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Main Content */
+        .main-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        /* Card Style */
+        .menu-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .menu-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: var(--theme-color);
+        }
+
+        .menu-card i {
+            font-size: 3rem;
+            color: var(--theme-color);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .menu-card span {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* Hover Effects */
+        .menu-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+            border-color: var(--theme-color);
+        }
+
+        .menu-card:hover i {
+            transform: scale(1.1);
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 600px) {
+            .navbar {
+                padding: 0 15px;
+            }
+
+            .navbar-brand span {
+                display: none;
+            }
+
+            .main-container {
+                margin: 20px auto;
+            }
+
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 15px;
+            }
+
+            .menu-card {
+                padding: 30px 15px;
+            }
+
+            .menu-card i {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <img src="{{ url_for('custom_static_images', filename='logo.png') }}" alt="世磊實業">
+        </a>
+        <div class="navbar-user">
+            <span class="user-welcome">您好，{{ session['name'] if session['name'] else session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> 登出
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="menu-grid">
+            <!-- 定義當前使用者變數 (轉大寫並去空白) -->
+            {% set _current_user = (session.get('username') or '')|upper|trim %}
+            <!-- DEBUG: Current User: [{{ _current_user }}] Raw: [{{ session.get('username') }}] -->
+
+            <!-- 業務查詢 -->
+            <a href="{{ url_for('sales') }}" class="menu-card" style="--theme-color: var(--color-business);">
+                <i class="fa-solid fa-briefcase"></i>
+                <span>業務查詢</span>
+            </a>
+
+            <!-- 助理查詢 -->
+            <a href="{{ url_for('assistant') }}" class="menu-card" style="--theme-color: var(--color-assistant);">
+                <i class="fa-solid fa-user-shield"></i>
+                <span>助理查詢</span>
+            </a>
+
+            <!-- 銷售資訊 -->
+            <a href="{{ url_for('sales_info.index') }}" class="menu-card" style="--theme-color: var(--color-sales);">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>出貨記錄查詢</span>
+            </a>
+
+            <!-- AI 業務助理 -->
+            {% if _current_user in ['B8A002', 'C4D002'] %}
+            <a href="{{ url_for('ai_analysis.index') }}" class="menu-card" style="--theme-color: #e84393;">
+                <i class="fa-solid fa-robot"></i>
+                <span>AI 業務助理</span>
+            </a>
+            {% endif %}
+
+            <!-- CRM 查詢 -->
+            <a href="{{ url_for('crm.index') }}" class="menu-card" style="--theme-color: var(--color-crm);">
+                <i class="fa-solid fa-users"></i>
+                <span>CRM 查詢</span>
+            </a>
+
+            <!-- 庫存查詢 -->
+            <a href="{{ url_for('inventory_inquiry.index') }}" class="menu-card"
+                style="--theme-color: var(--color-inventory);">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>庫存查詢</span>
+            </a>
+
+            <!-- 檔案共享 -->
+            <a href="{{ url_for('share.share_page') }}" class="menu-card" style="--theme-color: var(--color-share);">
+                <i class="fa-solid fa-folder-open"></i>
+                <span>檔案共享</span>
+            </a>
+
+            <!-- 產銷協調系統 -->
+            <a href="{{ url_for('psi.index') }}" class="menu-card" style="--theme-color: #2c3e50;">
+                <i class="fa-solid fa-industry"></i>
+                <span>年度產銷計畫</span>
+            </a>
+
+            <!-- 採購到貨進度 -->
+            {% if can_view_procure %}
+            <a href="{{ url_for('procure.index') }}" class="menu-card" style="--theme-color: var(--color-procure);">
+                <i class="fa-solid fa-truck-fast"></i>
+                <span>採購到貨進度</span>
+            </a>
+            {% endif %}
+
+            <!-- 附加功能 (根據權限顯示) -->
+            {% set _u = (session.get('username') or '')|upper %}
+
+            {% if _u in ['C4D002', 'B8A002'] %}
+            <a href="{{ url_for('bonus.bonus_index') }}" class="menu-card" style="--theme-color: var(--color-bonus);">
+                <i class="fa-solid fa-award"></i>
+                <span>員工獎勵系統</span>
+            </a>
+            {% endif %}
+
+            {% if _u == 'C4D002' %}
+            <a href="{{ url_for('admin_locked') }}" class="menu-card" style="--theme-color: var(--color-admin);">
+                <i class="fa-solid fa-user-lock"></i>
+                <span>帳號鎖定管理</span>
+            </a>
+            <a href="{{ url_for('warranty.view') }}" class="menu-card" style="--theme-color: #fd7e14;">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>保固資料查詢</span>
+            </a>
+            {% endif %}
+
+            {% if _u == 'B8A002' %}
+            <a href="{{ url_for('bonus.bonus_review') }}" class="menu-card" style="--theme-color: #3f51b5;">
+                <i class="fa-solid fa-check-to-slot"></i>
+                <span>獎勵審核</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+</body>
+
+</html>

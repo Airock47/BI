@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世磊實業 - 內部管理系統</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- 基礎設定 --- */
+        body {
+            background-color: #f4f6f9;
+            /* 淺灰背景，提升質感 */
+            font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- 頂部導航列 --- */
+        .navbar {
+            width: 100%;
+            background-color: #fff;
+            padding: 10px 30px;
+            /* 配合圖片高度調整間距 */
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            margin-bottom: 40px;
+        }
+
+        .brand {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        /* Logo 圖片設定 */
+        .brand-logo-img {
+            height: 45px;
+            /* 固定高度，寬度自動 */
+            width: auto;
+            object-fit: contain;
+        }
+
+        .user-info {
+            font-size: 0.95rem;
+            color: #555;
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            color: #fff;
+            background-color: #e74c3c;
+            text-decoration: none;
+            margin-left: 20px;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            transition: background-color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* --- 內容容器與網格 --- */
+        .container {
+            max-width: 1100px;
+            width: 92%;
+            padding-bottom: 40px;
+        }
+
+        .grid-menu {
+            display: grid;
+            /* RWD 設定：最小寬度 220px，自動填滿 */
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        /* --- 卡片通用樣式 --- */
+        .card {
+            background: white;
+            padding: 35px 25px;
+            border-radius: 16px;
+            text-decoration: none;
+            color: #444;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 160px;
+            /* 固定高度 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-7px);
+            /* 上浮效果 */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            border-color: var(--card-color);
+            /* Hover 時邊框變色 */
+        }
+
+        /* 卡片頂部彩色裝飾條 */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--card-color);
+            /* 使用 CSS 變數 */
+            opacity: 0.8;
+        }
+
+        .card i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--card-color);
+            /* 圖示顏色 */
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* --- 個別卡片配色設定 (CSS 變數) --- */
+        .card-business {
+            --card-color: #3498db;
+        }
+
+        /* 業務-藍 */
+        .card-admin {
+            --card-color: #1abc9c;
+        }
+
+        /* 助理-青 */
+        .card-sales {
+            --card-color: #9b59b6;
+        }
+
+        /* 銷售-紫 */
+        .card-crm {
+            --card-color: #f39c12;
+        }
+
+        /* CRM-橘 */
+        .card-stock {
+            --card-color: #27ae60;
+        }
+
+        /* 庫存-綠 */
+        .card-files {
+            --card-color: #7f8c8d;
+        }
+
+        /* 檔案-灰藍 */
+        .card-procure {
+            --card-color: #e74c3c;
+        }
+
+        /* 採購-紅 */
+    </style>
+</head>
+
+<body>
+
+    <div class="navbar">
+        <div class="brand">
+            <img src="D:\WEB\BI\ProcureTrack\static\images/logo.png" alt="世磊實業" class="brand-logo-img">
+        </div>
+        <div class="user-info">
+            您好，林家宏
+            <a href="#" class="logout-btn">登出</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="grid-menu">
+            <a href="#" class="card card-business">
+                <i class="fa-solid fa-briefcase"></i>
+                <h3>業務查詢</h3>
+            </a>
+
+            <a href="#" class="card card-admin">
+                <i class="fa-solid fa-user-shield"></i>
+                <h3>助理查詢</h3>
+            </a>
+
+            <a href="#" class="card card-sales">
+                <i class="fa-solid fa-file-invoice"></i>
+                <h3>銷售資訊</h3>
+            </a>
+
+            <a href="#" class="card card-crm">
+                <i class="fa-solid fa-users"></i>
+                <h3>CRM 查詢</h3>
+            </a>
+
+            <a href="#" class="card card-stock">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <h3>庫存查詢</h3>
+            </a>
+
+            <a href="#" class="card card-files">
+                <i class="fa-solid fa-folder-open"></i>
+                <h3>檔案共享</h3>
+            </a>
+
+            <a href="#" class="card card-procure">
+                <i class="fa-solid fa-truck-fast"></i>
+                <h3>採購到貨進度</h3>
+            </a>
+        </div>
+    </div>
+
+</body>
+
+</html>

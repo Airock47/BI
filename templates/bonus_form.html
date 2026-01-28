@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>員工獎勵系統 - 申請</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f7f7f9; padding:20px; }
+    .container { max-width: 840px; margin: 0 auto; background:#fff; padding:24px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .row { display:flex; gap:24px; flex-wrap:wrap; }
+    .card { flex:1 1 360px; background:#fff; border:1px solid #eee; border-radius:8px; padding:16px; }
+    .card h3 { margin:0 0 12px 0; font-size:18px; }
+    label { display:block; margin:8px 0 4px; }
+    input, select, textarea { width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; }
+    button { background:#673ab7; color:#fff; border:none; padding:10px 16px; border-radius:4px; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid #eee; padding:8px; text-align:left; font-size:14px; }
+    .muted { color:#888; font-size:12px; }
+    .btn-export { background:#4caf50; padding:6px 10px; border-radius:4px; color:#fff; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🏆 員工獎勵系統－申請</h2>
+    <div style="margin-bottom:10px;">
+      <a href="{{ url_for('bonus.bonus_index') }}" class="btn-export" style="background:#6c757d;">返回獎勵排行</a>
+    </div>
+    <div class="row">
+      <div class="card">
+        <h3>新增獎勵／扣分申請</h3>
+        <form method="post" action="{{ url_for('bonus.bonus_submit') }}">
+          <label>員工</label>
+          <input type="text" id="userFilter" placeholder="輸入姓名或員工編號快速篩選" oninput="filterUsers()" style="margin:6px 0;">
+          <select name="target_username" id="targetSelect" required>
+            <option value="">請選擇</option>
+            {% for u in users %}
+            <option value="{{ u.username }}" data-keys="{{ u.username }} {{ u.name }} {{ u.department }}">{{ u.name }}</option>
+            {% endfor %}
+          </select>
+
+          <label>點數（-5 ～ 5，0 不可）</label>
+          <select name="score" required>
+            {% for s in [5,4,3,2,1,-1,-2,-3,-4,-5] %}
+            <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+
+          <label>說明／事由</label>
+          <textarea name="reason" rows="4" placeholder="請簡要描述獎勵或扣分的原因"></textarea>
+
+          <div style="margin-top:12px">
+            <button type="submit">送出申請</button>
+            <a href="{{ url_for('dashboard') }}" style="margin-left:8px">返回主畫面</a>
+          </div>
+        </form>
+        <div class="muted" style="margin-top:8px">
+          提交後會通知審核人員（LINE）進行審核。
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>我的申請紀錄</h3>
+        <div style="margin: 6px 0 10px 0;">
+          <a href="{{ url_for('bonus.bonus_export_my') }}" class="btn-export">匯出 Excel</a>
+        </div>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>員工姓名</th><th>點數</th><th>狀態</th><th>申請日期</th></tr>
+          </thead>
+          <tbody>
+            {% for r in my_requests %}
+            {% set review_date = r.review_date %}
+            {% set review_reason = r.review_reason %}
+            <tr>
+              <td>{{ r.id }}</td>
+              <td>{{ r.target_name or r.target_username }}</td>
+              <td>{{ r.score }}</td>
+              <td>
+                {% if not review_date %}
+                  待審核
+                {% elif review_reason %}
+                  駁回
+                {% else %}
+                  核准
+                {% endif %}
+              </td>
+              <td>{{ (r.apply_date.split(' ')[0]) if r.apply_date else '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="muted">目前尚無申請紀錄。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script>
+    function filterUsers() {
+      const q = (document.getElementById('userFilter').value || '').toLowerCase();
+      const sel = document.getElementById('targetSelect');
+      for (const opt of sel.options) {
+        if (!opt.value) continue;
+        const text = (opt.textContent || opt.innerText || '').toLowerCase();
+        const keys = (opt.dataset.keys || '').toLowerCase();
+        const show = !q || text.includes(q) || keys.includes(q);
+        opt.hidden = !show;
+      }
+    }
+  </script>
+</body>
+</html>
