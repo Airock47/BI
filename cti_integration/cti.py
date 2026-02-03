@@ -241,6 +241,51 @@ def _lookup_customer_by_phone_customer_new(phone_e164: str) -> tuple[Optional[st
         suffix = d_local[-8:] if d_local else d_e164[-8:]
         cust_code: Optional[str] = None
 
+        # --- [Priority Search] Direct match in tables that have Postal Code ---
+        # 1. Search customer_addresses (Has 聯絡電話 & 郵遞區號)
+        if suffix:
+            try:
+                # Check columns first
+                cur.execute("PRAGMA table_info(customer_addresses)")
+                addr_cols = [r[1] for r in cur.fetchall()]
+                if "郵遞區號" in addr_cols and "聯絡電話" in addr_cols:
+                    # Look for non-empty postal code with matching phone
+                    cur.execute(
+                        f"SELECT 客戶代碼, 郵遞區號 FROM customer_addresses WHERE 聯絡電話 LIKE ? AND 郵遞區號 IS NOT NULL AND 郵遞區號 != '' LIMIT 1",
+                        (f"%{suffix}",)
+                    )
+                    row_p = cur.fetchone()
+                    if row_p:
+                        c_code = row_p[0]
+                        c_postal = row_p[1]
+                        conn.close()
+                        return c_code, c_postal
+            except Exception:
+                pass
+
+        # 2. Search customer_basic (Has 聯絡電話/電話 & 郵遞區號)
+        if suffix:
+            try:
+                cur.execute("PRAGMA table_info(customer_basic)")
+                basic_cols = [r[1] for r in cur.fetchall()]
+                if "郵遞區號" in basic_cols:
+                    phone_fields = [c for c in ["聯絡電話", "電話"] if c in basic_cols]
+                    if phone_fields:
+                        where_clause = " OR ".join([f"{c} LIKE ?" for c in phone_fields])
+                        # Check postal is not empty
+                        sql = f"SELECT 客戶代碼, 郵遞區號 FROM customer_basic WHERE ({where_clause}) AND 郵遞區號 IS NOT NULL AND 郵遞區號 != '' LIMIT 1"
+                        args = [f"%{suffix}"] * len(phone_fields)
+                        cur.execute(sql, args)
+                        row_b = cur.fetchone()
+                        if row_b:
+                            c_code = row_b[0]
+                            c_postal = row_b[1]
+                            conn.close()
+                            return c_code, c_postal
+            except Exception:
+                pass
+        # --- [End Priority Search] ---
+
         for table, cols in targets:
             # Check if table exists
             try:
